@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-app: var(--bg-app);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-hover: var(--bg-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-color-danger: var(--color-danger);
+  --color-color-success: var(--color-success);
+
+  /* Direct aliases requested by prompt */
+  --color-surface: var(--bg-surface);
+  --color-app: var(--bg-app);
+
+  /* Compatibility alias mapping */
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-border: var(--border);
+}
+
+/* --- LIGHT MODE (Google Drive / Reddit Desktop style) --- */
+:root {
+  /* Backgrounds */
+  --bg-app: #F7F7F7; /* Beautiful White for the outer app background */
+  --bg-surface: #FFFFFF; /* Pure white for note cards, doubt boxes, and sidebars */
+  --bg-hover: #F0F4F9; /* Very subtle blue-gray for hovering over notes/links */
+
+  /* Borders & Dividers */
+  --border-subtle: #E0E2E1; /* Clean, hard lines to separate content, no shadows */
+  
+  /* Text */
+  --text-primary: #1F1F1F; /* Almost black for high readability on white */
+  --text-secondary: #757575; /* Solid Matte Gray for timestamps, secondary info */
+
+  /* Accents (The Nexus Blue - inspired by Google's Bleu de France) */
+  --accent-primary: #3484F0; /* Primary brand color for buttons and active states */
+  --accent-hover: #2B6BCE; /* Slightly darker for button hover states */
+  --accent-muted: #C4DBFA; /* Light Tropical Blue for selected states or tags */
+  
+  /* Utility */
+  --color-danger: #D93025; /* For the "Report and flag" mechanism */
+  --color-success: #1E8E3E; /* For accepted commissions or verified notes */
+
+  /* Compatibility with other requested naming */
+  --text-main: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --primary: var(--accent-primary);
+  --primary-hover: var(--accent-hover);
+  --border: var(--border-subtle);
+}
+
+/* --- DARK MODE (YouTube / Reddit Mobile style) --- */
+[data-theme="dark"] {
+  /* Backgrounds */
+  --bg-app: #000000; /* Pure black for maximum contrast and OLED battery saving */
+  --bg-surface: #1E1E1E; /* Elevated dark gray for cards and sidebars */
+  --bg-hover: #282828; /* YouTube's classic Almost Black for hover states */
+
+  /* Borders & Dividers */
+  --border-subtle: #333333; /* Dark gray borders, replacing the need for drop shadows */
+  
+  /* Text */
+  --text-primary: #E3E3E3; /* Off-white to prevent eye strain in the dark */
+  --text-secondary: #AAAAAA; /* Softer gray for metadata and less important text */
+
+  /* Accents */
+  --accent-primary: #8AB4F8; /* Lighter, more pastel blue to pass accessibility contrast on dark backgrounds */
+  --accent-hover: #AECBFA; 
+  --accent-muted: #3B4043; /* Dark muted blue-gray for tags in dark mode */
+  
+  /* Utility */
+  --color-danger: #F28B82; /* Lighter red for dark mode readability */
+  --color-success: #81C995; /* Lighter green for dark mode readability */
+
+  /* Compatibility mapping */
+  --text-main: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --primary: var(--accent-primary);
+  --primary-hover: var(--accent-hover);
+  --border: var(--border-subtle);
+}
+
+/* Global Styles overrides to respect CSS Variables color theme */
+body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
