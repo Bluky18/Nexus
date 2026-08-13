@@ -1,6 +1,0 @@
-{
-  "name": "Nexus",
-  "description": "A centralized student utility platform featuring notes sharing, peer academic commissions, anonymous doubt resolution, and a lost-and-found board.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
