@@ -10,6 +10,8 @@ import SettingsView from './components/SettingsView';
 import AuthView from './components/AuthView';
 import AdminDashboard from './components/AdminDashboard';
 import LandingPage from './components/LandingPage';
+import NotFoundView from './components/NotFoundView';
+import { RouterProvider, useRouter, TabId } from './router';
 import { Note, Commission, Doubt, LostFoundItem, StudentProfile } from './types';
 import { API_URL } from './config';
 
@@ -238,19 +240,53 @@ const INITIAL_LOST_FOUND: LostFoundItem[] = [
   }
 ];
 
-export default function App() {
-  // Authentication states
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('nexus_token');
-  });
+interface NexusAppContentProps {
+  token: string | null;
+  setToken: React.Dispatch<React.SetStateAction<string | null>>;
+  sessionId: string | null;
+  setSessionId: React.Dispatch<React.SetStateAction<string | null>>;
+  profile: StudentProfile;
+  setProfile: React.Dispatch<React.SetStateAction<StudentProfile>>;
+}
 
+function NexusAppContent({
+  token,
+  setToken,
+  sessionId,
+  setSessionId,
+  profile,
+  setProfile
+}: NexusAppContentProps) {
+  const { pathname, route, currentTab, navigate, navigateToTab } = useRouter();
   const isAuthenticated = !!token;
-  const [showAuth, setShowAuth] = useState(false);
+  const [showAuth, setShowAuth] = useState(() => route === 'auth');
 
-  // Global Navigation state
-  const [currentTab, setCurrentTab] = useState<string>(() => {
-    return localStorage.getItem('nexus_current_tab') || 'dashboard';
-  });
+  // Synchronize showAuth state when route changes
+  useEffect(() => {
+    if (route === 'auth') {
+      setShowAuth(true);
+    } else if (route === 'landing') {
+      setShowAuth(false);
+    }
+  }, [route]);
+
+  // If user is authenticated and hits root or welcome, redirect to /homepage
+  useEffect(() => {
+    if (isAuthenticated && (pathname === '/' || pathname === '/welcome')) {
+      navigate('/homepage', { replace: true });
+    }
+  }, [isAuthenticated, pathname, navigate]);
+
+  // If user is authenticated and hits /login or /signup, redirect to /homepage
+  useEffect(() => {
+    if (isAuthenticated && (pathname === '/login' || pathname === '/signup' || pathname === '/auth')) {
+      navigate('/homepage', { replace: true });
+    }
+  }, [isAuthenticated, pathname, navigate]);
+
+  const setCurrentTab = (tab: string) => {
+    navigateToTab(tab as TabId);
+  };
 
   // Global search query
   const [searchQuery, setSearchQuery] = useState('');
@@ -258,12 +294,6 @@ export default function App() {
   // Mode and Theme State
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('nexus_theme') as 'light' | 'dark') || 'light';
-  });
-
-  // Load / Sync lists with LocalStorage
-  const [profile, setProfile] = useState<StudentProfile>(() => {
-    const saved = localStorage.getItem('nexus_profile');
-    return saved ? JSON.parse(saved) : INITIAL_PROFILE;
   });
 
   const [notes, setNotes] = useState<Note[]>(() => {
@@ -324,24 +354,33 @@ export default function App() {
     localStorage.setItem('nexus_lostfound', JSON.stringify(lostFound));
   }, [lostFound]);
 
-  const handleAuthSuccess = (newToken: string, newProfile: StudentProfile) => {
+  const handleAuthSuccess = (newToken: string, newProfile: StudentProfile, newSessionId?: string) => {
+    const sid = newSessionId || 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
     localStorage.setItem('nexus_token', newToken);
-    localStorage.setItem('nexus_profile', JSON.stringify(newProfile));
+    localStorage.setItem('nexus_session_id', sid);
+    const profileWithSession = { ...newProfile, sessionId: sid };
+    localStorage.setItem('nexus_profile', JSON.stringify(profileWithSession));
     setToken(newToken);
-    setProfile(newProfile);
+    setSessionId(sid);
+    setProfile(profileWithSession);
+    setShowAuth(false);
     if (newProfile.theme_preference) {
       setTheme(newProfile.theme_preference as 'light' | 'dark');
     }
+    navigate('/homepage');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('nexus_token');
+    localStorage.removeItem('nexus_session_id');
     localStorage.removeItem('nexus_profile');
     localStorage.removeItem('nexus_current_tab');
     setToken(null);
+    setSessionId(null);
     setProfile(INITIAL_PROFILE);
-    setCurrentTab('dashboard');
+    setShowAuth(false);
     setTheme('light');
+    navigate('/');
   };
 
   // Periodically fetch and sync profile from backend
@@ -350,16 +389,19 @@ export default function App() {
       let isMounted = true;
       const fetchProfile = async () => {
         try {
-          const response = await fetch(`${API_URL}/api/v1/user/profile`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
+          const headers: Record<string, string> = {
+            'Authorization': `Bearer ${token}`
+          };
+          if (sessionId) {
+            headers['X-Session-Id'] = sessionId;
+          }
+          const response = await fetch(`${API_URL}/api/v1/user/profile`, { headers });
           if (!isMounted) return;
           if (response.ok) {
             const data = await response.json();
-            setProfile(data);
-            localStorage.setItem('nexus_profile', JSON.stringify(data));
+            const profileData = { ...data, sessionId: data.sessionId || sessionId };
+            setProfile(profileData);
+            localStorage.setItem('nexus_profile', JSON.stringify(profileData));
             if (data.theme_preference) {
               setTheme(data.theme_preference as 'light' | 'dark');
             }
@@ -568,24 +610,30 @@ export default function App() {
           />
         );
       default:
-        return (
-          <div className="py-12 text-center text-text-secondary">
-            View is under active construction.
-          </div>
-        );
+        return <NotFoundView onGoHome={() => navigateToTab('dashboard')} />;
     }
   };
 
   if (!isAuthenticated) {
-    if (showAuth) {
+    if (showAuth || route === 'auth') {
       return (
         <AuthView 
           onAuthSuccess={handleAuthSuccess} 
-          onBack={() => setShowAuth(false)} 
+          onBack={() => {
+            setShowAuth(false);
+            navigate('/');
+          }} 
         />
       );
     }
-    return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+    return (
+      <LandingPage 
+        onGetStarted={() => {
+          setShowAuth(true);
+          navigate('/login');
+        }} 
+      />
+    );
   }
 
   return (
@@ -602,3 +650,40 @@ export default function App() {
     </Layout>
   );
 }
+
+export default function App() {
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem('nexus_token');
+  });
+
+  const [sessionId, setSessionId] = useState<string | null>(() => {
+    const saved = localStorage.getItem('nexus_session_id');
+    if (saved) return saved;
+    if (localStorage.getItem('nexus_token')) {
+      const generated = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('nexus_session_id', generated);
+      return generated;
+    }
+    return null;
+  });
+
+  const isAuthenticated = !!token;
+  const [profile, setProfile] = useState<StudentProfile>(() => {
+    const saved = localStorage.getItem('nexus_profile');
+    return saved ? JSON.parse(saved) : INITIAL_PROFILE;
+  });
+
+  return (
+    <RouterProvider isAuthenticated={isAuthenticated} isAdmin={profile.isAdmin}>
+      <NexusAppContent
+        token={token}
+        setToken={setToken}
+        sessionId={sessionId}
+        setSessionId={setSessionId}
+        profile={profile}
+        setProfile={setProfile}
+      />
+    </RouterProvider>
+  );
+}
+

@@ -14,12 +14,17 @@ app.use(express.json());
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-User-Id');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-User-Id, X-Session-Id');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
   next();
 });
+
+// Helper for session ID generation
+function generateSessionId(): string {
+  return 'sess_' + Date.now().toString(36) + '_' + crypto.randomBytes(4).toString('hex');
+}
 
 // Helper for SHA-256 hashing
 function hashPassword(password: string): string {
@@ -423,11 +428,13 @@ app.post('/api/v1/auth/signup', (req, res) => {
   users.push(newUser);
   const token = jwt.sign({ sub: newUser.id, email: newUser.email }, JWT_SECRET, { expiresIn: '7d' });
 
+  const sessionId = generateSessionId();
   return res.status(201).json({
     status: 'success',
     message: 'User registered successfully',
     token,
-    user: sanitizeUser(newUser)
+    sessionId,
+    user: { ...sanitizeUser(newUser), sessionId }
   });
 });
 
@@ -449,10 +456,12 @@ app.post('/api/v1/auth/login', (req, res) => {
   }
 
   const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+  const sessionId = generateSessionId();
   return res.json({
     status: 'success',
     token,
-    user: sanitizeUser(user)
+    sessionId,
+    user: { ...sanitizeUser(user), sessionId }
   });
 });
 
@@ -500,10 +509,12 @@ app.post('/api/v1/auth/google-login', (req, res) => {
     }
 
     const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const sessionId = generateSessionId();
     return res.json({
       status: 'success',
       token,
-      user: sanitizeUser(user)
+      sessionId,
+      user: { ...sanitizeUser(user), sessionId }
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Google authentication failed' });
@@ -513,7 +524,8 @@ app.post('/api/v1/auth/google-login', (req, res) => {
 // User Profile
 app.get('/api/v1/user/profile', (req, res) => {
   const user = getCurrentUser(req);
-  return res.json(sanitizeUser(user));
+  const clientSessionId = (req.headers['x-session-id'] as string) || generateSessionId();
+  return res.json({ ...sanitizeUser(user), sessionId: clientSessionId });
 });
 
 // User Profile Settings

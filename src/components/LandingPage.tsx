@@ -19,6 +19,9 @@ import {
   Plus
 } from 'lucide-react';
 
+import { Note, Commission, Doubt, LostFoundItem, StudentProfile } from '../types';
+import { Link } from '../router';
+
 interface LandingPageProps {
   onGetStarted: () => void;
 }
@@ -114,14 +117,23 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             <a href="#cta" className="text-xs font-bold tracking-wider text-[#1A1A1A]/70 hover:text-[#1A1A1A] uppercase transition-colors">Claim Profile</a>
           </nav>
 
-          <div className="flex items-center gap-4">
-            <button
-              id="landing-nav-get-started"
+          <div className="flex items-center gap-3">
+            <Link
+              to="/login"
               onClick={onGetStarted}
+              id="landing-nav-signin"
+              className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A] hover:opacity-75 transition-opacity px-2 py-1 cursor-pointer"
+            >
+              Sign In
+            </Link>
+            <Link
+              to="/signup"
+              onClick={onGetStarted}
+              id="landing-nav-get-started"
               className="px-5 py-2.5 bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-[#FAF9F5] text-xs font-bold uppercase tracking-wider rounded-none transition-all cursor-pointer border border-[#1A1A1A] hover:invert"
             >
               Get Started
-            </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -148,14 +160,15 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
-              <button
+              <Link
+                to="/signup"
                 id="hero-cta-join"
                 onClick={onGetStarted}
                 className="group px-8 py-4 bg-[#1A1A1A] text-[#FAF9F5] font-black text-xs uppercase tracking-wider hover:bg-neutral-800 transition-all cursor-pointer flex items-center justify-center gap-2 border border-transparent"
               >
                 <span>Join Your Campus Network</span>
                 <ArrowRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
-              </button>
+              </Link>
               <a
                 href="#features"
                 className="px-8 py-4 bg-transparent text-[#1A1A1A] hover:bg-[#1A1A1A]/5 font-black text-xs uppercase tracking-wider transition-all cursor-pointer text-center border border-[#1A1A1A]"

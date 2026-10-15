@@ -3,9 +3,10 @@ import { motion } from 'motion/react';
 import { Mail, Lock, User as UserIcon, BookOpen, Hash, Milestone, ShieldAlert, CheckCircle } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { API_URL } from '../config';
+import { useRouter } from '../router';
 
 interface AuthViewProps {
-  onAuthSuccess: (token: string, profile: any) => void;
+  onAuthSuccess: (token: string, profile: any, sessionId?: string) => void;
   onBack?: () => void;
 }
 
@@ -36,7 +37,8 @@ async function parseJsonResponse(response: Response) {
 }
 
 export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
-  const [isLogin, setIsLogin] = useState(true);
+  const { pathname, navigate } = useRouter();
+  const [isLogin, setIsLogin] = useState(() => pathname !== '/signup');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -68,7 +70,7 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
 
       setSuccessMsg('Signed in with Google successfully!');
       setTimeout(() => {
-        onAuthSuccess(data.token, data.user);
+        onAuthSuccess(data.token, data.user, data.sessionId);
       }, 800);
     } catch (err: any) {
       setError(err.message || 'Google Login failed. Please try again.');
@@ -93,6 +95,7 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
     setIsLogin(toLogin);
     setError('');
     setSuccessMsg('');
+    navigate(toLogin ? '/login' : '/signup', { replace: true });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,7 +123,7 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
           throw new Error(data.error || 'Authentication failed. Please check credentials.');
         }
 
-        onAuthSuccess(data.token, data.user);
+        onAuthSuccess(data.token, data.user, data.sessionId);
       } catch (err: any) {
         setError(err.message || 'Login failed. Please try again.');
       } finally {
@@ -179,7 +182,7 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
         }
 
         setTimeout(() => {
-          onAuthSuccess(loginData.token, loginData.user);
+          onAuthSuccess(loginData.token, loginData.user, loginData.sessionId || signupData.sessionId);
         }, 1000);
       } catch (err: any) {
         setError(err.message || 'Signup failed. Please try again.');

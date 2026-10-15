@@ -1,4 +1,5 @@
 import os
+import uuid
 from typing import List, Optional
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, status, Header
@@ -1001,9 +1002,11 @@ def auth_signup(request: SignUpRequest):
     
     try:
         users_collection.insert_one(user_doc)
+        session_id = f"sess_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
         return {
             "status": "success",
             "message": "User registered successfully",
+            "sessionId": session_id,
             "user": {
                 "id": user_doc["id"],
                 "name": user_doc["name"],
@@ -1011,7 +1014,8 @@ def auth_signup(request: SignUpRequest):
                 "rollNo": user_doc["rollNo"],
                 "branch": user_doc["branch"],
                 "email": user_doc["email"],
-                "theme_preference": user_doc["theme_preference"]
+                "theme_preference": user_doc["theme_preference"],
+                "sessionId": session_id
             }
         }
     except Exception as e:
@@ -1023,7 +1027,7 @@ def auth_signup(request: SignUpRequest):
 @app.post("/api/v1/auth/login")
 def auth_login(request: LoginRequest):
     """
-    Authenticates a student and issues a JWT token.
+    Authenticates a student and issues a JWT token with a session ID.
     """
     user = users_collection.find_one({"email": request.email})
     if not user:
@@ -1039,9 +1043,12 @@ def auth_login(request: LoginRequest):
         )
     
     token = encode_token({"sub": user.get("id"), "email": user.get("email")})
+    session_id = f"sess_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
     
     return {
+        "status": "success",
         "token": token,
+        "sessionId": session_id,
         "user": {
             "id": user.get("id"),
             "name": user.get("name"),
@@ -1055,14 +1062,16 @@ def auth_login(request: LoginRequest):
             "rating": user.get("rating", 4.8),
             "earnings": user.get("earnings", 650),
             "completedTasksCount": user.get("completedTasksCount", 2),
-            "uploadedNotesCount": user.get("uploadedNotesCount", 4)
+            "uploadedNotesCount": user.get("uploadedNotesCount", 4),
+            "sessionId": session_id
         }
     }
 
 @app.get("/api/v1/user/profile")
 def get_user_profile(
     authorization: Optional[str] = Header(None),
-    x_user_id: Optional[str] = Header(None)
+    x_user_id: Optional[str] = Header(None),
+    x_session_id: Optional[str] = Header(None)
 ):
     """
     Returns verified user profile data. Requires Bearer Token or security fallback headers.
@@ -1078,6 +1087,7 @@ def get_user_profile(
             detail="User profile not found in our database"
         )
         
+    client_sess_id = x_session_id or f"sess_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
     return {
         "id": user.get("id"),
         "name": user.get("name"),
@@ -1091,7 +1101,8 @@ def get_user_profile(
         "rating": user.get("rating", 4.8),
         "earnings": user.get("earnings", 650),
         "completedTasksCount": user.get("completedTasksCount", 2),
-        "uploadedNotesCount": user.get("uploadedNotesCount", 4)
+        "uploadedNotesCount": user.get("uploadedNotesCount", 4),
+        "sessionId": client_sess_id
     }
 
 @app.put("/api/v1/user/profile/settings")

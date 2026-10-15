@@ -14,6 +14,7 @@ import {
   Settings as SettingsIcon
 } from 'lucide-react';
 import { StudentProfile } from '../types';
+import { Link, TabId } from '../router';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -38,13 +39,13 @@ export default function Layout({
 }: LayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'notes', label: 'Notes', icon: BookOpen },
-    { id: 'tasks', label: 'Tasks', icon: Briefcase },
-    { id: 'doubt-box', label: 'Doubt Box', icon: HelpCircle },
-    { id: 'lost-found', label: 'Lost & Found', icon: Compass },
-    { id: 'profile', label: 'Profile', icon: User },
+  const navigationItems: Array<{ id: TabId; label: string; icon: any; path: string }> = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/homepage' },
+    { id: 'notes', label: 'Notes', icon: BookOpen, path: '/notes' },
+    { id: 'tasks', label: 'Tasks', icon: Briefcase, path: '/tasks' },
+    { id: 'doubt-box', label: 'Doubt Box', icon: HelpCircle, path: '/doubts' },
+    { id: 'lost-found', label: 'Lost & Found', icon: Compass, path: '/lost-found' },
+    { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
 
   const handleTabClick = (tabId: string) => {
@@ -60,13 +61,14 @@ export default function Layout({
           isCollapsed ? 'md:w-16' : 'md:w-64'
         }`}
       >
-        <button
+        <Link
           id="sidebar-logo-btn"
-          onClick={() => setCurrentTab('profile')}
+          to="/homepage"
+          onClick={() => handleTabClick('dashboard')}
           className={`h-16 border-b border-border-subtle flex items-center gap-2 text-left hover:bg-bg-hover/50 transition-colors cursor-pointer w-full ${
             isCollapsed ? 'justify-center px-0' : 'px-6'
           }`}
-          title="Go to Profile"
+          title="Go to Homepage"
         >
           <div className="w-8 h-8 rounded-lg bg-accent-primary flex-shrink-0 flex items-center justify-center text-white font-bold text-lg">
             N
@@ -79,15 +81,16 @@ export default function Layout({
               </span>
             </>
           )}
-        </button>
+        </Link>
 
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           {navigationItems.map((item) => {
             const IconComponent = item.icon;
             const isActive = currentTab === item.id;
             return (
-              <button
+              <Link
                 key={item.id}
+                to={item.path}
                 id={`desktop-nav-${item.id}`}
                 onClick={() => handleTabClick(item.id)}
                 className={`w-full flex items-center gap-3 py-3 rounded-lg text-sm font-medium transition-all duration-150 ${
@@ -99,15 +102,20 @@ export default function Layout({
               >
                 <IconComponent size={18} className={isActive ? 'text-accent-primary' : 'text-text-secondary'} />
                 {!isCollapsed && item.label}
-              </button>
+              </Link>
             );
           })}
         </nav>
 
         <div className="p-4 border-t border-border-subtle">
-          <div className={`flex items-center gap-3 py-2 rounded-lg bg-bg-hover ${
-            isCollapsed ? 'justify-center px-0' : 'px-3'
-          }`}>
+          <Link
+            to="/profile"
+            onClick={() => handleTabClick('profile')}
+            className={`flex items-center gap-3 py-2 rounded-lg bg-bg-hover hover:bg-bg-hover/80 transition-colors ${
+              isCollapsed ? 'justify-center px-0' : 'px-3'
+            }`}
+            title="View Profile"
+          >
             <div className="w-8 h-8 rounded-full bg-accent-primary/20 flex-shrink-0 flex items-center justify-center text-accent-primary font-bold text-sm">
               {profile && profile.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'ST'}
             </div>
@@ -119,7 +127,7 @@ export default function Layout({
                 </p>
               </div>
             )}
-          </div>
+          </Link>
         </div>
       </aside>
 
@@ -142,16 +150,17 @@ export default function Layout({
             >
               <Menu size={18} />
             </button>
-            <button
+            <Link
               id="mobile-logo-btn"
-              onClick={() => setCurrentTab('profile')}
+              to="/homepage"
+              onClick={() => handleTabClick('dashboard')}
               className="flex items-center gap-2 md:hidden cursor-pointer"
             >
               <div className="w-8 h-8 rounded-lg bg-accent-primary flex items-center justify-center text-white font-bold text-lg">
                 N
               </div>
               <div className="font-bold tracking-wider text-text-primary text-base">NEXUS</div>
-            </button>
+            </Link>
           </div>
 
           {/* Center-aligned global search bar (desktop only) */}
@@ -182,9 +191,10 @@ export default function Layout({
 
           {/* Right: Settings Button */}
           <div className="flex items-center gap-2">
-            <button
+            <Link
+              to="/settings"
               id="settings-nav-btn"
-              onClick={() => setCurrentTab('settings')}
+              onClick={() => handleTabClick('settings')}
               className={`p-2 rounded-lg transition-all duration-150 border cursor-pointer active:scale-95 ${
                 currentTab === 'settings'
                   ? 'bg-accent-muted text-accent-hover dark:bg-accent-muted/20 dark:text-accent-primary border-accent-primary'
@@ -193,7 +203,7 @@ export default function Layout({
               title="Settings & Preferences"
             >
               <SettingsIcon size={18} />
-            </button>
+            </Link>
           </div>
         </header>
 
@@ -215,8 +225,9 @@ export default function Layout({
           const IconComponent = item.icon;
           const isActive = currentTab === item.id;
           return (
-            <button
+            <Link
               key={item.id}
+              to={item.path}
               id={`mobile-bottom-nav-item-${item.id}`}
               onClick={() => handleTabClick(item.id)}
               className="flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all duration-150"
@@ -232,7 +243,7 @@ export default function Layout({
               >
                 {item.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </nav>

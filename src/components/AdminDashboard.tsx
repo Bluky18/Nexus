@@ -194,14 +194,23 @@ export default function AdminDashboard({
             Secure queue of student-reported content requiring review. Act as root authority.
           </p>
         </div>
-        <button
-          onClick={fetchReports}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-bg-surface hover:bg-bg-hover text-text-primary border border-border-subtle text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          <span>Sync Queue</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            id="admin-exit-btn"
+            onClick={() => setCurrentTab('settings')}
+            className="flex items-center gap-1.5 px-3 py-2 bg-bg-surface hover:bg-bg-hover text-text-secondary hover:text-text-primary border border-border-subtle text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+          >
+            <span>Back to Settings</span>
+          </button>
+          <button
+            onClick={fetchReports}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-bg-surface hover:bg-bg-hover text-text-primary border border-border-subtle text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span>Sync Queue</span>
+          </button>
+        </div>
       </div>
 
       {/* Admin Stat Bento Grid */}

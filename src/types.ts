@@ -107,4 +107,5 @@ export interface StudentProfile {
   theme_preference?: 'light' | 'dark' | string;
   email?: string;
   isAdmin?: boolean;
+  sessionId?: string;
 }

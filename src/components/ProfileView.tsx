@@ -4,7 +4,8 @@ import {
   Award, 
   BookMarked,
   Shield,
-  Edit3
+  Edit3,
+  Key
 } from 'lucide-react';
 import { StudentProfile, Note, Commission } from '../types';
 
@@ -70,9 +71,16 @@ export default function ProfileView({
               <p className="text-xs text-text-secondary">
                 {profile.college} • Roll No: {profile.rollNo} • Division: {profile.division}
               </p>
-              <p className="text-[10px] font-mono text-text-secondary bg-app border border-border-subtle inline-block px-1.5 py-0.5 rounded">
-                Board Seat No: {profile.seatNo}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                <span className="text-[10px] font-mono text-text-secondary bg-app border border-border-subtle inline-block px-1.5 py-0.5 rounded">
+                  Board Seat No: {profile.seatNo}
+                </span>
+                {profile.sessionId && (
+                  <span className="text-[10px] font-mono text-accent-primary bg-accent-muted/15 border border-accent-primary/20 inline-flex items-center gap-1 px-1.5 py-0.5 rounded" title="Active Authenticated Device Session">
+                    <Key size={10} /> Session: {profile.sessionId}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

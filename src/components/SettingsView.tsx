@@ -8,7 +8,9 @@ import {
   Activity, 
   LogOut,
   Settings as SettingsIcon,
-  Shield
+  Shield,
+  Key,
+  Copy
 } from 'lucide-react';
 import { StudentProfile } from '../types';
 
@@ -43,6 +45,7 @@ export default function SettingsView({
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isPassSavedNotify, setIsPassSavedNotify] = useState(false);
+  const [copiedSession, setCopiedSession] = useState(false);
 
   const branches = ['Computer Science', 'Information Technology', 'Electronics', 'Applied Sciences', 'Mechanical'];
 
@@ -319,6 +322,39 @@ export default function SettingsView({
               </div>
             </div>
           )}
+
+          {/* Active Device Session Card */}
+          <div className="bg-surface border border-border-subtle rounded-xl p-5 space-y-4 shadow-xs">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-text-secondary pb-2 border-b border-border-subtle flex items-center gap-1.5">
+              <Key size={14} className="text-accent-primary" /> Active Device Session
+            </h2>
+
+            <div className="space-y-3">
+              <p className="text-xs text-text-secondary">
+                Your authenticated session identifier used for secure token validation and multi-device identity.
+              </p>
+
+              <div className="flex items-center justify-between p-2.5 bg-app border border-border-subtle rounded-lg">
+                <span className="font-mono text-xs text-text-primary truncate max-w-[200px]" title={profile.sessionId || 'N/A'}>
+                  {profile.sessionId || 'Local Session Active'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (profile.sessionId) {
+                      navigator.clipboard.writeText(profile.sessionId);
+                      setCopiedSession(true);
+                      setTimeout(() => setCopiedSession(false), 2000);
+                    }
+                  }}
+                  className="flex items-center gap-1 text-[10px] font-bold text-accent-primary hover:text-accent-hover cursor-pointer px-2 py-1 rounded bg-accent-muted/15"
+                >
+                  {copiedSession ? <Check size={11} /> : <Copy size={11} />}
+                  <span>{copiedSession ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Logout / Critical Section Card */}
           <div className="bg-surface border border-border-subtle rounded-xl p-5 space-y-4 shadow-xs">
