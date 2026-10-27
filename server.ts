@@ -970,11 +970,6 @@ app.post('/api/v1/admin/reports/:id/dismiss', (req, res) => {
   return res.json({ status: 'success', message: 'Report dismissed' });
 });
 
-// Google Cloud Console / Search Console Site Verification
-app.get('/google0d12bbfe23201257.html', (_req, res) => {
-  res.type('text/html').send('google-site-verification: google0d12bbfe23201257.html');
-});
-
 // Fallback 404 for unhandled API routes
 app.all('/api/*', (req, res) => {
   res.status(404).json({
