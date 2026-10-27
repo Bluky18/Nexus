@@ -36,8 +36,8 @@ function hashPassword(password: string): string {
 interface User {
   id: string;
   name: string;
-  division: string;
-  rollNo: string;
+  division?: string;
+  rollNo?: string;
   seatNo: string;
   branch: string;
   email: string;
@@ -56,19 +56,17 @@ const users: User[] = [
   {
     id: 'student-123',
     name: 'Harshit Kataram',
-    division: 'A',
-    rollNo: '24',
-    seatNo: '24TCS192',
+    seatNo: 'CS26192',
     branch: 'Computer Science',
     email: 'harshitcsb@gmail.com',
     password_hash: hashPassword('password123'),
     theme_preference: 'light',
     semester: 6,
     college: 'Nirmala Memorial Foundation College, Kandivali, Mumbai',
-    rating: 4.8,
-    earnings: 650,
-    completedTasksCount: 2,
-    uploadedNotesCount: 4,
+    rating: 5.0,
+    earnings: 0,
+    completedTasksCount: 0,
+    uploadedNotesCount: 0,
     isAdmin: true
   }
 ];
@@ -87,8 +85,10 @@ let notes = [
     fileType: 'pdf',
     fileSize: '4.2 MB',
     downloads: 12,
-    uploadedBy: 'Aditya Roy',
-    uploader_name: 'Aditya Roy',
+    uploadedBy: 'Aditya Roy (Alumnus)',
+    uploader_name: 'Aditya Roy (Alumnus)',
+    uploader_id: 'alumni-aditya',
+    uploadedByUserId: 'alumni-aditya',
     file_url: 'https://example.com/files/ml_notes.pdf',
     description: 'Detailed explanation of feedforward propagation, backpropagation, gradient descent variants, activation functions (ReLU, Sigmoid, GELU), and overfitting prevention techniques.',
     date: '2026-07-09',
@@ -108,8 +108,10 @@ let notes = [
     fileType: 'pdf',
     fileSize: '1.8 MB',
     downloads: 41,
-    uploadedBy: 'Harshit Kataram',
-    uploader_name: 'Harshit Kataram',
+    uploadedBy: 'Vikram Malhotra (Alumnus)',
+    uploader_name: 'Vikram Malhotra (Alumnus)',
+    uploader_id: 'alumni-vikram',
+    uploadedByUserId: 'alumni-vikram',
     file_url: 'https://example.com/files/dsa_cheatsheet.pdf',
     description: 'Includes complexities, code drafts, and dry runs for graph algorithms (Dijkstra, Bellman-Ford, Kruskal), tree traversals, sliding window pattern, and dynamic programming paradigms.',
     date: '2026-07-11',
@@ -129,8 +131,10 @@ let notes = [
     fileType: 'docx',
     fileSize: '2.5 MB',
     downloads: 5,
-    uploadedBy: 'Prof. Rajesh Sen',
-    uploader_name: 'Prof. Rajesh Sen',
+    uploadedBy: 'Prof. Rajesh Sen (Faculty)',
+    uploader_name: 'Prof. Rajesh Sen (Faculty)',
+    uploader_id: 'faculty-rajesh',
+    uploadedByUserId: 'faculty-rajesh',
     file_url: 'https://example.com/files/microprocessor_manual.docx',
     description: 'Laboratory guide for 8086 processor instruction set, addressing modes, registers mapping, and solved assembly examples for arithmetic array sorting.',
     date: '2026-07-05',
@@ -150,8 +154,10 @@ let notes = [
     fileType: 'pdf',
     fileSize: '5.6 MB',
     downloads: 19,
-    uploadedBy: 'Neha Sawant',
-    uploader_name: 'Neha Sawant',
+    uploadedBy: 'Neha Sawant (Alumna)',
+    uploader_name: 'Neha Sawant (Alumna)',
+    uploader_id: 'alumni-neha',
+    uploadedByUserId: 'alumni-neha',
     file_url: 'https://example.com/files/math_solved_papers.pdf',
     description: 'Step-by-step mathematical proofs for Fourier series expansion, Laplace transformations, complex variables mapping, and linear differential equations of higher orders.',
     date: '2026-07-10',
@@ -203,7 +209,8 @@ let tasks = [
     deadline: '2026-07-13',
     branch: 'Applied Sciences',
     status: 'accepted',
-    acceptedBy: 'Me',
+    acceptedBy: 'Siddharth Dave (Alumnus)',
+    acceptedBy_id: 'alumni-sid',
     clientName: 'Kabir Mehta',
     clientRating: 4.5,
     poster_id: 'student-kabir',
@@ -220,7 +227,8 @@ let tasks = [
     deadline: '2026-07-08',
     branch: 'Computer Science',
     status: 'completed',
-    acceptedBy: 'Me',
+    acceptedBy: 'Priyanka Ghosh (Alumna)',
+    acceptedBy_id: 'alumni-priyanka',
     clientName: 'Anaya Roy',
     clientRating: 4.9,
     poster_id: 'student-anaya',
@@ -396,8 +404,8 @@ app.get('/api/health', (req, res) => {
 
 // Auth: Signup
 app.post('/api/v1/auth/signup', (req, res) => {
-  const { name, division, rollNo, branch, email, password } = req.body;
-  if (!name || !division || !rollNo || !branch || !email || !password) {
+  const { name, branch, email, password } = req.body;
+  if (!name || !branch || !email || !password) {
     return res.status(400).json({ error: 'All fields are required', detail: 'All fields are required' });
   }
 
@@ -406,12 +414,12 @@ app.post('/api/v1/auth/signup', (req, res) => {
     return res.status(400).json({ error: 'Email already registered', detail: 'Email already registered' });
   }
 
+  const cleanYear = new Date().getFullYear().toString().slice(-2);
+  const randomId = Math.floor(1000 + Math.random() * 9000);
   const newUser: User = {
     id: `student-${Date.now()}`,
     name,
-    division,
-    rollNo,
-    seatNo: `${division}${rollNo}TCS${Math.floor(100 + Math.random() * 900)}`,
+    seatNo: `CS${cleanYear}${randomId}`,
     branch,
     email,
     password_hash: hashPassword(password),
@@ -487,22 +495,22 @@ app.post('/api/v1/auth/google-login', (req, res) => {
 
     let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
+      const cleanYear = new Date().getFullYear().toString().slice(-2);
+      const randomId = Math.floor(1000 + Math.random() * 9000);
       user = {
         id: `student-g-${Date.now()}`,
         name,
-        division: 'A',
-        rollNo: '24',
-        seatNo: '24TCS192',
+        seatNo: `CS${cleanYear}${randomId}`,
         branch: 'Computer Science',
         email,
         password_hash: '',
         theme_preference: 'light',
         semester: 6,
         college: 'Nirmala Memorial Foundation College, Kandivali, Mumbai',
-        rating: 4.8,
-        earnings: 650,
-        completedTasksCount: 2,
-        uploadedNotesCount: 4,
+        rating: 5.0,
+        earnings: 0,
+        completedTasksCount: 0,
+        uploadedNotesCount: 0,
         isAdmin: email.toLowerCase() === 'harshitcsb@gmail.com'
       };
       users.push(user);
@@ -581,6 +589,8 @@ app.post('/api/v1/notes', (req, res) => {
     downloads: 0,
     uploadedBy: user.name,
     uploader_name: user.name,
+    uploader_id: user.id,
+    uploadedByUserId: user.id,
     file_url: file_url || `https://example.com/files/${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_notes.pdf`,
     description: description || 'Study material uploaded to Nexus.',
     date: new Date().toISOString().split('T')[0],
@@ -958,6 +968,11 @@ app.post('/api/v1/admin/reports/:id/dismiss', (req, res) => {
     doubt.reportReason = '';
   }
   return res.json({ status: 'success', message: 'Report dismissed' });
+});
+
+// Google Cloud Console / Search Console Site Verification
+app.get('/google0d12bbfe23201257.html', (_req, res) => {
+  res.type('text/html').send('google-site-verification: google0d12bbfe23201257.html');
 });
 
 // Fallback 404 for unhandled API routes

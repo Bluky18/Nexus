@@ -35,8 +35,6 @@ export default function SettingsView({
   const [editName, setEditName] = useState(profile.name);
   const [editBranch, setEditBranch] = useState(profile.branch);
   const [editSemester, setEditSemester] = useState(profile.semester.toString());
-  const [editDivision, setEditDivision] = useState(profile.division);
-  const [editRollNo, setEditRollNo] = useState(profile.rollNo);
   const [editSeatNo, setEditSeatNo] = useState(profile.seatNo);
   const [editCollege, setEditCollege] = useState(profile.college);
   const [isSavedNotify, setIsSavedNotify] = useState(false);
@@ -54,8 +52,6 @@ export default function SettingsView({
     setEditName(profile.name);
     setEditBranch(profile.branch);
     setEditSemester(profile.semester.toString());
-    setEditDivision(profile.division);
-    setEditRollNo(profile.rollNo);
     setEditSeatNo(profile.seatNo);
     setEditCollege(profile.college);
   }, [profile]);
@@ -67,8 +63,6 @@ export default function SettingsView({
       name: editName,
       branch: editBranch,
       semester: parseInt(editSemester),
-      division: editDivision,
-      rollNo: editRollNo,
       seatNo: editSeatNo,
       college: editCollege
     }));
@@ -168,33 +162,7 @@ export default function SettingsView({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-text-secondary uppercase">Division Class</label>
-                <input
-                  id="edit-division-input"
-                  type="text"
-                  required
-                  value={editDivision}
-                  onChange={(e) => setEditDivision(e.target.value)}
-                  className="w-full p-2.5 bg-app border border-border-subtle rounded-lg text-xs text-text-primary focus:outline-hidden"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-text-secondary uppercase">Class Roll Number</label>
-                <input
-                  id="edit-rollno-input"
-                  type="text"
-                  required
-                  value={editRollNo}
-                  onChange={(e) => setEditRollNo(e.target.value)}
-                  className="w-full p-2.5 bg-app border border-border-subtle rounded-lg text-xs text-text-primary focus:outline-hidden"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-text-secondary uppercase">Board Seat Number</label>
+                <label className="text-xs font-bold text-text-secondary uppercase">Board Seat / Student ID</label>
                 <input
                   id="edit-seatno-input"
                   type="text"

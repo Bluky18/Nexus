@@ -27,14 +27,25 @@ export default function ProfileView({
   setCurrentTab
 }: ProfileViewProps) {
   // Filter lists to items owned or worked on by this user
-  const userUploadedNotes = notes.filter(n => n.uploadedBy === 'Harshit Kataram');
-  const userClaimedCommissions = tasks.filter(t => t.acceptedBy === 'Me');
+  const userUploadedNotes = notes.filter(n => 
+    (profile?.id && (n.uploadedByUserId === profile.id || (n as any).uploader_id === profile.id)) ||
+    (!n.uploadedByUserId && !(n as any).uploader_id && profile?.name && 
+      (n.uploadedBy?.trim().toLowerCase() === profile.name.trim().toLowerCase() || 
+       n.uploader_name?.trim().toLowerCase() === profile.name.trim().toLowerCase()) &&
+      !n.uploadedBy?.includes('(Alumn') && !n.uploadedBy?.includes('(Faculty)')
+    )
+  );
+  const userClaimedCommissions = tasks.filter(t => 
+    (profile?.id && ((t as any).acceptedBy_id === profile.id || 
+      (t.acceptedBy?.trim().toLowerCase() === profile.name?.trim().toLowerCase() && !t.acceptedBy?.includes('(Alumn'))
+    ))
+  );
 
-  const ratingHistory = [
+  const ratingHistory = (profile.completedTasksCount > 0 || profile.uploadedNotesCount > 0) ? [
     { id: 1, rater: "Aditya Roy (IT Sem 4)", rating: 5, date: "2026-07-09", comment: "Excellent documentation on Dijkstra calculations!" },
     { id: 2, rater: "Neha Sawant (CS Sem 6)", rating: 5, date: "2026-07-11", comment: "Completed the React component suite way ahead of deadline." },
     { id: 3, rater: "Rahul G. (Applied Sci)", rating: 4.8, date: "2026-07-12", comment: "Solves Physics lab calculations with detailed steps." }
-  ];
+  ] : [];
 
   return (
     <div id="profile-view" className="space-y-6 max-w-7xl mx-auto pb-10">
@@ -69,7 +80,7 @@ export default function ProfileView({
                 </span>
               </h2>
               <p className="text-xs text-text-secondary">
-                {profile.college} • Roll No: {profile.rollNo} • Division: {profile.division}
+                {profile.college} • {profile.branch} • Semester {profile.semester}
               </p>
               <div className="flex items-center gap-2 flex-wrap pt-0.5">
                 <span className="text-[10px] font-mono text-text-secondary bg-app border border-border-subtle inline-block px-1.5 py-0.5 rounded">
@@ -148,6 +159,11 @@ export default function ProfileView({
                   <p className="text-text-secondary italic">"{review.comment}"</p>
                 </div>
               ))}
+              {ratingHistory.length === 0 && (
+                <p className="text-xs text-text-secondary italic py-6 text-center">
+                  No ratings or reviews yet. Complete commissions or upload verified study notes to build your academic reputation.
+                </p>
+              )}
             </div>
           </div>
 

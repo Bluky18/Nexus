@@ -78,10 +78,6 @@ export default function AdminDashboard({
   }, [profile.isAdmin, token]);
 
   const handleDeleteContent = async (itemId: string, contentType: 'note' | 'commission' | 'doubt') => {
-    if (!window.confirm(`Are you absolutely sure you want to delete this ${contentType} permanently from Nexus? This action is irreversible.`)) {
-      return;
-    }
-
     setActionInProgress(itemId);
     try {
       let endpoint = '';

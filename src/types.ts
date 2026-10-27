@@ -13,6 +13,8 @@ export interface Note {
   downloads: number;
   uploadedBy: string;
   uploader_name?: string;
+  uploader_id?: string;
+  uploadedByUserId?: string;
   file_url?: string;
   description: string;
   date: string;
@@ -33,6 +35,7 @@ export interface Commission {
   clientName: string;
   clientRating: number;
   acceptedBy?: string;
+  acceptedBy_id?: string;
   workerRating?: number;
   reported: boolean;
   reportReason?: string;
@@ -60,6 +63,7 @@ export interface Doubt {
   category: string;
   subject?: string;
   authorAnonymousName: string;
+  authorId?: string;
   answers: Answer[];
   upvotes: number;
   userUpvoted?: boolean;
@@ -94,8 +98,8 @@ export interface LostFoundItem {
 export interface StudentProfile {
   id?: string;
   name: string;
-  division: string;
-  rollNo: string;
+  division?: string;
+  rollNo?: string;
   seatNo: string;
   branch: string;
   semester: number;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, User as UserIcon, BookOpen, Hash, Milestone, ShieldAlert, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, BookOpen, ShieldAlert, CheckCircle } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { API_URL } from '../config';
 import { useRouter } from '../router';
@@ -47,8 +47,6 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [division, setDivision] = useState('');
-  const [rollNo, setRollNo] = useState('');
   const [branch, setBranch] = useState('Computer Science');
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
@@ -131,7 +129,7 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
       }
     } else {
       // Sign Up Flow
-      if (!name || !division || !rollNo || !branch || !email || !password) {
+      if (!name || !branch || !email || !password) {
         setError('All registration fields are required.');
         setLoading(false);
         return;
@@ -149,8 +147,6 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name,
-            division,
-            rollNo,
             branch,
             email,
             password
@@ -306,39 +302,6 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
                   />
                 </div>
 
-                {/* Division & Roll Number Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-secondary">
-                      <Milestone size={18} />
-                    </span>
-                    <input
-                      id="signup-division"
-                      type="text"
-                      required
-                      placeholder="Division (e.g. A)"
-                      value={division}
-                      onChange={(e) => setDivision(e.target.value)}
-                      maxLength={2}
-                      className="w-full pl-11 pr-4 py-2.5 bg-app border border-border-subtle rounded-xl text-sm text-text-primary placeholder-text-secondary focus:outline-hidden focus:ring-1 focus:ring-accent-primary focus:border-accent-primary transition-all"
-                    />
-                  </div>
-
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-secondary">
-                      <Hash size={18} />
-                    </span>
-                    <input
-                      id="signup-rollno"
-                      type="text"
-                      required
-                      placeholder="Roll No (e.g. 24)"
-                      value={rollNo}
-                      onChange={(e) => setRollNo(e.target.value)}
-                      className="w-full pl-11 pr-4 py-2.5 bg-app border border-border-subtle rounded-xl text-sm text-text-primary placeholder-text-secondary focus:outline-hidden focus:ring-1 focus:ring-accent-primary focus:border-accent-primary transition-all"
-                    />
-                  </div>
-                </div>
 
                 {/* Branch Selection */}
                 <div className="relative">

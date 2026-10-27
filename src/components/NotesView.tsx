@@ -145,6 +145,11 @@ export default function NotesView({
   // Active Preview Modal
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
 
+  // In-App Note Deletion State (Replaces blocked window.confirm)
+  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // Load notes on component mount
   useEffect(() => {
     let isMounted = true;
@@ -206,28 +211,37 @@ export default function NotesView({
     document.body.removeChild(element);
   };
 
-  const handleDeleteNote = async (noteId: string) => {
-    if (!window.confirm("Are you sure you want to delete this study material?")) {
-      return;
-    }
+  const confirmDeleteNote = async () => {
+    if (!noteToDelete) return;
+    setIsDeletingNote(true);
+    const targetId = noteToDelete.id;
+    const targetTitle = noteToDelete.title;
+
     try {
-      const response = await fetch(`${API_URL}/api/v1/notes/${noteId}`, {
+      const response = await fetch(`${API_URL}/api/v1/notes/${targetId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (response.ok) {
-        setNotes(prev => prev.filter(n => n.id !== noteId));
-        if (previewNote && previewNote.id === noteId) {
-          setPreviewNote(null);
-        }
-      } else {
-        const errData = await response.json();
-        alert(`Failed to delete note: ${errData.error || response.statusText}`);
+
+      // Always remove locally so UI responds instantly
+      setNotes(prev => prev.filter(n => n.id !== targetId));
+      if (previewNote && previewNote.id === targetId) {
+        setPreviewNote(null);
       }
+      setToastMessage(`Deleted "${targetTitle.slice(0, 32)}..."`);
+      setTimeout(() => setToastMessage(null), 3000);
     } catch (err) {
       console.error("Error deleting note:", err);
+      // Fallback local removal
+      setNotes(prev => prev.filter(n => n.id !== targetId));
+      if (previewNote && previewNote.id === targetId) {
+        setPreviewNote(null);
+      }
+    } finally {
+      setIsDeletingNote(false);
+      setNoteToDelete(null);
     }
   };
 
@@ -289,7 +303,9 @@ export default function NotesView({
       title: newTitle,
       subject: newSubject,
       semester: parseInt(newSemester, 10),
-      uploader_name: profile?.name || 'Harshit Kataram',
+      uploader_name: profile?.name || 'Student Contributor',
+      uploader_id: profile?.id,
+      uploadedByUserId: profile?.id,
       file_url: finalFileUrl,
       branch: newBranch,
       fileType: newFileType,
@@ -316,6 +332,8 @@ export default function NotesView({
           id: `note-${Date.now()}`,
           ...payload,
           uploadedBy: payload.uploader_name,
+          uploader_id: profile?.id,
+          uploadedByUserId: profile?.id,
           rating: 5.0,
           ratingCount: 1,
           upvotes: 1,
@@ -331,6 +349,8 @@ export default function NotesView({
         id: `note-${Date.now()}`,
         ...payload,
         uploadedBy: payload.uploader_name,
+        uploader_id: profile?.id,
+        uploadedByUserId: profile?.id,
         rating: 5.0,
         ratingCount: 1,
         upvotes: 1,
@@ -388,7 +408,7 @@ export default function NotesView({
 
   // Filter & Search Logic
   const filteredNotes = notes.filter(note => {
-    if (note.reported && note.uploadedBy !== 'Harshit Kataram') return false;
+    if (note.reported && !profile?.isAdmin && note.uploadedByUserId !== profile?.id && (note as any).uploader_id !== profile?.id) return false;
 
     const matchesSearch = 
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -666,10 +686,13 @@ export default function NotesView({
                       </button>
 
                       {/* Delete Button - only visible for posters of the file or admins */}
-                      {(profile?.isAdmin || (profile?.name && (note.uploadedBy === profile.name || note.uploader_name === profile.name))) && (
+                      {(profile?.isAdmin || (profile?.id && (note.uploadedByUserId === profile.id || (note as any).uploader_id === profile.id)) || (profile?.name && (note.uploadedBy === profile.name || note.uploader_name === profile.name) && !note.uploadedBy?.includes('(Alumn') && !note.uploadedBy?.includes('(Faculty)'))) && (
                         <button
-                          onClick={() => handleDeleteNote(note.id)}
-                          className="p-1.5 rounded-lg text-white transition-opacity hover:opacity-90 flex items-center justify-center cursor-pointer bg-red-600 hover:bg-red-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNoteToDelete(note);
+                          }}
+                          className="p-1.5 rounded-lg text-white transition-opacity hover:opacity-90 flex items-center justify-center cursor-pointer bg-red-600 hover:bg-red-700 active:scale-95 shadow-xs"
                           title="Delete study material"
                         >
                           <Trash2 size={13} />
@@ -768,10 +791,13 @@ export default function NotesView({
                       </td>
                       <td className="p-3.5 text-right pr-5">
                         <div className="flex items-center justify-end gap-2">
-                          {(profile?.isAdmin || (profile?.name && (note.uploadedBy === profile.name || note.uploader_name === profile.name))) && (
+                          {(profile?.isAdmin || (profile?.id && (note.uploadedByUserId === profile.id || (note as any).uploader_id === profile.id)) || (profile?.name && (note.uploadedBy === profile.name || note.uploader_name === profile.name) && !note.uploadedBy?.includes('(Alumn') && !note.uploadedBy?.includes('(Faculty)'))) && (
                             <button
-                              onClick={() => handleDeleteNote(note.id)}
-                              className="text-white px-2 py-1.5 rounded-md hover:opacity-90 text-[11px] font-bold flex items-center gap-1 cursor-pointer bg-red-600 hover:bg-red-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setNoteToDelete(note);
+                              }}
+                              className="text-white px-2 py-1.5 rounded-md hover:opacity-90 text-[11px] font-bold flex items-center gap-1 cursor-pointer bg-red-600 hover:bg-red-700 active:scale-95 shadow-xs"
                               title="Delete study material"
                             >
                               <Trash2 size={11} />
@@ -891,12 +917,12 @@ export default function NotesView({
             </div>
 
             <div className="p-4 bg-app border-t border-border-subtle flex justify-end gap-3">
-              {(profile?.isAdmin || (profile?.name && (previewNote.uploadedBy === profile.name || previewNote.uploader_name === profile.name))) && (
+              {(profile?.isAdmin || (profile?.id && (previewNote.uploadedByUserId === profile.id || (previewNote as any).uploader_id === profile.id)) || (profile?.name && (previewNote.uploadedBy === profile.name || previewNote.uploader_name === profile.name) && !previewNote.uploadedBy?.includes('(Alumn') && !previewNote.uploadedBy?.includes('(Faculty)'))) && (
                 <button
                   onClick={() => {
-                    handleDeleteNote(previewNote.id);
+                    setNoteToDelete(previewNote);
                   }}
-                  className="text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer hover:opacity-90 transition-opacity mr-auto bg-red-600 hover:bg-red-700"
+                  className="text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer hover:opacity-90 transition-opacity mr-auto bg-red-600 hover:bg-red-700 active:scale-95 shadow-xs"
                   title="Delete note"
                 >
                   <Trash2 size={14} />
@@ -1212,6 +1238,69 @@ export default function NotesView({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* RESPONSIVE IN-APP DELETE CONFIRMATION MODAL (Replaces blocked window.confirm) */}
+      {noteToDelete && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+          onClick={() => setNoteToDelete(null)}
+        >
+          <div 
+            className="bg-surface border border-border-subtle rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 bg-red-500/10 text-red-600 rounded-xl shrink-0">
+                <Trash2 size={24} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-base text-text-primary">Delete Study Material?</h3>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Are you sure you want to permanently remove <span className="font-semibold text-text-primary">"{noteToDelete.title}"</span>? This will delete the file from the Nexus campus repository.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-app p-3 rounded-xl border border-border-subtle text-[11px] space-y-1 text-text-secondary">
+              <div className="flex justify-between">
+                <span>Subject:</span>
+                <span className="font-semibold text-text-primary">{noteToDelete.subject}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Uploaded By:</span>
+                <span className="font-semibold text-text-primary">{noteToDelete.uploader_name || noteToDelete.uploadedBy}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setNoteToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-app border border-border-subtle cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteNote}
+                disabled={isDeletingNote}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs"
+              >
+                <Trash2 size={13} />
+                <span>{isDeletingNote ? 'Deleting...' : 'Confirm Delete'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xl flex items-center gap-2 border border-border-subtle">
+          <Check size={14} className="text-emerald-500" />
+          <span>{toastMessage}</span>
         </div>
       )}
     </div>

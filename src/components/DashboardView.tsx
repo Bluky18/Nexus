@@ -10,8 +10,7 @@ import {
   ChevronRight,
   Plus,
   ShieldCheck,
-  Award,
-  Settings
+  Award
 } from 'lucide-react';
 import { Note, Commission, Doubt, LostFoundItem, StudentProfile } from '../types';
 
@@ -40,32 +39,79 @@ export default function DashboardView({
   onOpenAskDoubt,
   onOpenPostItem
 }: DashboardViewProps) {
-  // Stats calculations
+  // Toggle between student's personal activity metrics and campus-wide totals
+  const [viewScope, setViewScope] = React.useState<'my' | 'campus'>('my');
+
+  // Campus-wide stats calculations
   const openTasks = tasks.filter(t => t.status === 'open').length;
   const unansweredDoubts = doubts.filter(d => d.answers.length === 0).length;
   const pendingLostFound = lostFound.filter(i => i.status === 'found').length;
 
+  // Student's personal activity metrics (isolated strictly to the authenticated student)
+  const myNotes = notes.filter(n => 
+    (profile?.id && (n.uploadedByUserId === profile.id || (n as any).uploader_id === profile.id)) ||
+    (!n.uploadedByUserId && !(n as any).uploader_id && profile?.name && 
+      (n.uploadedBy?.trim().toLowerCase() === profile.name.trim().toLowerCase() || 
+       n.uploader_name?.trim().toLowerCase() === profile.name.trim().toLowerCase()) &&
+      !n.uploadedBy?.includes('(Alumn') && !n.uploadedBy?.includes('(Faculty)')
+    )
+  );
+  const myTasks = tasks.filter(t => 
+    (profile?.id && (t.poster_id === profile.id || (t as any).acceptedBy_id === profile.id)) ||
+    (!t.poster_id && !(t as any).acceptedBy_id && profile?.name && 
+      (t.clientName?.trim().toLowerCase() === profile.name.trim().toLowerCase() || 
+       t.acceptedBy?.trim().toLowerCase() === profile.name.trim().toLowerCase()) &&
+      !t.acceptedBy?.includes('(Alumn')
+    )
+  );
+  const myDoubts = doubts.filter(d => 
+    (profile?.id && ((d as any).authorId === profile.id || (d as any).author_id === profile.id)) ||
+    (!((d as any).authorId) && profile?.name && d.authorAnonymousName?.trim().toLowerCase() === profile.name.trim().toLowerCase())
+  );
+  const myLostFound = lostFound.filter(i => 
+    (profile?.id && i.poster_id === profile.id) ||
+    (!i.poster_id && profile?.email && i.contactEmail?.trim().toLowerCase() === profile.email.trim().toLowerCase())
+  );
+
+  const myTotalActivity = myNotes.length + myTasks.length + myDoubts.length + myLostFound.length;
+
   return (
     <div id="dashboard-view" className="space-y-6 max-w-7xl mx-auto">
       {/* Top Banner section */}
-      <div className="relative bg-bg-surface border border-border-subtle rounded-xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        {/* Settings Gear icon in top-right of dashboard */}
-        <button
-          id="dash-settings-btn"
-          onClick={() => setCurrentTab('profile')}
-          className="absolute top-4 right-4 p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-lg transition-colors border border-border-subtle cursor-pointer"
-          title="Open Settings"
-        >
-          <Settings size={16} className="animate-hover-spin" />
-        </button>
-
+      <div className="bg-bg-surface border border-border-subtle rounded-xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-text-primary">Welcome back, {profile.name}!</h1>
           <p className="text-xs text-text-secondary mt-1">
-            {profile.college} • Division {profile.division} • Roll No {profile.rollNo}
+            {profile.college} • {profile.branch} • Semester {profile.semester}
           </p>
+
+          {/* Activity Scope Switcher (My Activity vs Campus Community) */}
+          <div className="mt-3.5 inline-flex items-center bg-bg-app border border-border-subtle p-0.5 rounded-lg text-xs font-medium">
+            <button
+              id="dash-scope-personal-btn"
+              onClick={() => setViewScope('my')}
+              className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewScope === 'my'
+                  ? 'bg-accent-primary text-white font-semibold shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              My Activity ({myTotalActivity})
+            </button>
+            <button
+              id="dash-scope-campus-btn"
+              onClick={() => setViewScope('campus')}
+              className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewScope === 'campus'
+                  ? 'bg-accent-primary text-white font-semibold shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              Campus Hub ({notes.length + openTasks})
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2 pr-6">
+        <div className="flex flex-wrap gap-2">
           <button
             id="dash-quick-note"
             onClick={onOpenUploadNote}
@@ -99,55 +145,87 @@ export default function DashboardView({
 
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Card 1: Notes */}
         <div 
           onClick={() => setCurrentTab('notes')}
-          className="bg-bg-surface border border-border-subtle rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 cursor-pointer hover:border-accent-primary/55 transition-all hover:shadow-xs"
+          className="bg-bg-surface border border-border-subtle rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 cursor-pointer hover:border-accent-primary/55 transition-all hover:shadow-xs group"
         >
-          <div className="p-2 sm:p-2.5 rounded-lg bg-accent-primary/10 text-accent-primary shrink-0">
+          <div className="p-2 sm:p-2.5 rounded-lg bg-accent-primary/10 text-accent-primary shrink-0 group-hover:scale-105 transition-transform">
             <BookOpen size={18} />
           </div>
-          <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-text-secondary truncate">Shared Notes</p>
-            <h3 className="text-sm sm:text-lg font-bold text-text-primary truncate">{notes.length} Files</h3>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] sm:text-xs font-semibold text-text-secondary truncate">
+              {viewScope === 'my' ? 'My Shared Notes' : 'Shared Notes'}
+            </p>
+            <h3 className="text-sm sm:text-lg font-bold text-text-primary truncate">
+              {viewScope === 'my' ? `${myNotes.length} Files` : `${notes.length} Files`}
+            </h3>
+            <span className="text-[10px] text-text-secondary block mt-0.5 truncate">
+              {viewScope === 'my' ? `${notes.length} campus files` : `${myNotes.length} by you`}
+            </span>
           </div>
         </div>
 
+        {/* Card 2: Tasks */}
         <div 
           onClick={() => setCurrentTab('tasks')}
-          className="bg-bg-surface border border-border-subtle rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 cursor-pointer hover:border-color-success/55 transition-all hover:shadow-xs"
+          className="bg-bg-surface border border-border-subtle rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 cursor-pointer hover:border-color-success/55 transition-all hover:shadow-xs group"
         >
-          <div className="p-2 sm:p-2.5 rounded-lg bg-color-success/10 text-color-success shrink-0">
+          <div className="p-2 sm:p-2.5 rounded-lg bg-color-success/10 text-color-success shrink-0 group-hover:scale-105 transition-transform">
             <Briefcase size={18} />
           </div>
-          <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-text-secondary truncate">Active Tasks</p>
-            <h3 className="text-sm sm:text-lg font-bold text-text-primary truncate">{openTasks} Open</h3>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] sm:text-xs font-semibold text-text-secondary truncate">
+              {viewScope === 'my' ? 'My Active Tasks' : 'Active Tasks'}
+            </p>
+            <h3 className="text-sm sm:text-lg font-bold text-text-primary truncate">
+              {viewScope === 'my' ? `${myTasks.length} Active` : `${openTasks} Open`}
+            </h3>
+            <span className="text-[10px] text-text-secondary block mt-0.5 truncate">
+              {viewScope === 'my' ? `${openTasks} open on board` : `${myTasks.length} by you`}
+            </span>
           </div>
         </div>
 
+        {/* Card 3: Doubts */}
         <div 
           onClick={() => setCurrentTab('doubt-box')}
-          className="bg-bg-surface border border-border-subtle rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 cursor-pointer hover:border-yellow-500/55 transition-all hover:shadow-xs"
+          className="bg-bg-surface border border-border-subtle rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 cursor-pointer hover:border-yellow-500/55 transition-all hover:shadow-xs group"
         >
-          <div className="p-2 sm:p-2.5 rounded-lg bg-yellow-500/10 text-yellow-500 shrink-0">
+          <div className="p-2 sm:p-2.5 rounded-lg bg-yellow-500/10 text-yellow-500 shrink-0 group-hover:scale-105 transition-transform">
             <HelpCircle size={18} />
           </div>
-          <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-text-secondary truncate">Open Doubts</p>
-            <h3 className="text-sm sm:text-lg font-bold text-text-primary truncate">{unansweredDoubts} Threads</h3>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] sm:text-xs font-semibold text-text-secondary truncate">
+              {viewScope === 'my' ? 'My Asked Doubts' : 'Open Doubts'}
+            </p>
+            <h3 className="text-sm sm:text-lg font-bold text-text-primary truncate">
+              {viewScope === 'my' ? `${myDoubts.length} Threads` : `${unansweredDoubts} Threads`}
+            </h3>
+            <span className="text-[10px] text-text-secondary block mt-0.5 truncate">
+              {viewScope === 'my' ? `${unansweredDoubts} open on campus` : `${myDoubts.length} by you`}
+            </span>
           </div>
         </div>
 
+        {/* Card 4: Lost & Found */}
         <div 
           onClick={() => setCurrentTab('lost-found')}
-          className="bg-bg-surface border border-border-subtle rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 cursor-pointer hover:border-pink-500/55 transition-all hover:shadow-xs"
+          className="bg-bg-surface border border-border-subtle rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 cursor-pointer hover:border-pink-500/55 transition-all hover:shadow-xs group"
         >
-          <div className="p-2 sm:p-2.5 rounded-lg bg-pink-500/10 text-pink-500 shrink-0">
+          <div className="p-2 sm:p-2.5 rounded-lg bg-pink-500/10 text-pink-500 shrink-0 group-hover:scale-105 transition-transform">
             <Compass size={18} />
           </div>
-          <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-text-secondary truncate">Lost & Found</p>
-            <h3 className="text-sm sm:text-lg font-bold text-text-primary truncate">{pendingLostFound} Unclaimed</h3>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] sm:text-xs font-semibold text-text-secondary truncate">
+              {viewScope === 'my' ? 'My Lost & Found' : 'Lost & Found'}
+            </p>
+            <h3 className="text-sm sm:text-lg font-bold text-text-primary truncate">
+              {viewScope === 'my' ? `${myLostFound.length} Reports` : `${pendingLostFound} Unclaimed`}
+            </h3>
+            <span className="text-[10px] text-text-secondary block mt-0.5 truncate">
+              {viewScope === 'my' ? `${pendingLostFound} at campus desk` : `${myLostFound.length} by you`}
+            </span>
           </div>
         </div>
       </div>

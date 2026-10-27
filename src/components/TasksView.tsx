@@ -124,9 +124,6 @@ export default function TasksView({
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!window.confirm("Are you sure you want to delete this commission task as an administrator?")) {
-      return;
-    }
     try {
       const response = await fetch(`${API_URL}/api/v1/tasks/${taskId}`, {
         method: 'DELETE',

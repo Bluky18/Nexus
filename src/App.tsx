@@ -19,16 +19,14 @@ import { API_URL } from './config';
 const INITIAL_PROFILE: StudentProfile = {
   id: 'student-123',
   name: 'Harshit Kataram',
-  division: 'A',
-  rollNo: '24',
-  seatNo: '24TCS192',
+  seatNo: 'CS26192',
   branch: 'Computer Science',
   semester: 6,
   college: 'Nirmala Memorial Foundation College, Kandivali, Mumbai',
-  rating: 4.8,
-  earnings: 650,
-  completedTasksCount: 2,
-  uploadedNotesCount: 4
+  rating: 5.0,
+  earnings: 0,
+  completedTasksCount: 0,
+  uploadedNotesCount: 0
 };
 
 const INITIAL_NOTES: Note[] = [
@@ -44,7 +42,10 @@ const INITIAL_NOTES: Note[] = [
     fileType: 'pdf',
     fileSize: '4.2 MB',
     downloads: 12,
-    uploadedBy: 'Aditya Roy',
+    uploadedBy: 'Aditya Roy (Alumnus)',
+    uploader_name: 'Aditya Roy (Alumnus)',
+    uploader_id: 'alumni-aditya',
+    uploadedByUserId: 'alumni-aditya',
     description: 'Detailed explanation of feedforward propagation, backpropagation, gradient descent variants, activation functions (ReLU, Sigmoid, GELU), and overfitting prevention techniques.',
     date: '2026-07-09',
     reported: false
@@ -61,7 +62,10 @@ const INITIAL_NOTES: Note[] = [
     fileType: 'pdf',
     fileSize: '1.8 MB',
     downloads: 41,
-    uploadedBy: 'Harshit Kataram', // Uploaded by current student
+    uploadedBy: 'Vikram Malhotra (Alumnus)',
+    uploader_name: 'Vikram Malhotra (Alumnus)',
+    uploader_id: 'alumni-vikram',
+    uploadedByUserId: 'alumni-vikram',
     description: 'Includes complexities, code drafts, and dry runs for graph algorithms (Dijkstra, Bellman-Ford, Kruskal), tree traversals, sliding window pattern, and dynamic programming paradigms.',
     date: '2026-07-11',
     reported: false
@@ -78,7 +82,10 @@ const INITIAL_NOTES: Note[] = [
     fileType: 'docx',
     fileSize: '2.5 MB',
     downloads: 5,
-    uploadedBy: 'Prof. Rajesh Sen',
+    uploadedBy: 'Prof. Rajesh Sen (Faculty)',
+    uploader_name: 'Prof. Rajesh Sen (Faculty)',
+    uploader_id: 'faculty-rajesh',
+    uploadedByUserId: 'faculty-rajesh',
     description: 'Laboratory guide for 8086 processor instruction set, addressing modes, registers mapping, and solved assembly examples for arithmetic array sorting.',
     date: '2026-07-05',
     reported: false
@@ -95,7 +102,10 @@ const INITIAL_NOTES: Note[] = [
     fileType: 'pdf',
     fileSize: '5.6 MB',
     downloads: 19,
-    uploadedBy: 'Neha Sawant',
+    uploadedBy: 'Neha Sawant (Alumna)',
+    uploader_name: 'Neha Sawant (Alumna)',
+    uploader_id: 'alumni-neha',
+    uploadedByUserId: 'alumni-neha',
     description: 'Step-by-step mathematical proofs for Fourier series expansion, Laplace transformations, complex variables mapping, and linear differential equations of higher orders.',
     date: '2026-07-10',
     reported: false
@@ -113,6 +123,7 @@ const INITIAL_TASKS: Commission[] = [
     status: 'open',
     clientName: 'Aarav Sharma',
     clientRating: 4.7,
+    poster_id: 'student-aarav',
     reported: false
   },
   {
@@ -125,6 +136,7 @@ const INITIAL_TASKS: Commission[] = [
     status: 'open',
     clientName: 'Pooja Patil',
     clientRating: 4.9,
+    poster_id: 'student-pooja',
     reported: false
   },
   {
@@ -135,7 +147,9 @@ const INITIAL_TASKS: Commission[] = [
     deadline: '2026-07-13',
     branch: 'Applied Sciences',
     status: 'accepted',
-    acceptedBy: 'Me', // Accepted by current student
+    acceptedBy: 'Siddharth Dave (Alumnus)',
+    acceptedBy_id: 'alumni-sid',
+    poster_id: 'student-kabir',
     clientName: 'Kabir Mehta',
     clientRating: 4.5,
     reported: false
@@ -148,7 +162,9 @@ const INITIAL_TASKS: Commission[] = [
     deadline: '2026-07-08',
     branch: 'Computer Science',
     status: 'completed',
-    acceptedBy: 'Me',
+    acceptedBy: 'Priyanka Ghosh (Alumna)',
+    acceptedBy_id: 'alumni-priyanka',
+    poster_id: 'student-anaya',
     clientName: 'Anaya Roy',
     clientRating: 4.9,
     reported: false
@@ -670,7 +686,17 @@ export default function App() {
   const isAuthenticated = !!token;
   const [profile, setProfile] = useState<StudentProfile>(() => {
     const saved = localStorage.getItem('nexus_profile');
-    return saved ? JSON.parse(saved) : INITIAL_PROFILE;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        delete parsed.division;
+        delete parsed.rollNo;
+        return parsed;
+      } catch {
+        return INITIAL_PROFILE;
+      }
+    }
+    return INITIAL_PROFILE;
   });
 
   return (

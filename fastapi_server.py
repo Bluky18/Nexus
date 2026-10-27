@@ -912,8 +912,8 @@ def delete_lost_found(
 
 class SignUpRequest(BaseModel):
     name: str
-    division: str
-    rollNo: str
+    division: Optional[str] = "A"
+    rollNo: Optional[str] = "24"
     branch: str
     email: str
     password: str
@@ -994,10 +994,10 @@ def auth_signup(request: SignUpRequest):
         "theme_preference": "light",
         "semester": 6,
         "college": "Nirmala Memorial Foundation College, Kandivali, Mumbai",
-        "rating": 4.8,
-        "earnings": 650,
-        "completedTasksCount": 2,
-        "uploadedNotesCount": 4
+        "rating": 5.0,
+        "earnings": 0,
+        "completedTasksCount": 0,
+        "uploadedNotesCount": 0
     }
     
     try:
@@ -1059,10 +1059,10 @@ def auth_login(request: LoginRequest):
             "theme_preference": user.get("theme_preference", "light"),
             "semester": user.get("semester", 6),
             "college": user.get("college", "Nirmala Memorial Foundation College, Kandivali, Mumbai"),
-            "rating": user.get("rating", 4.8),
-            "earnings": user.get("earnings", 650),
-            "completedTasksCount": user.get("completedTasksCount", 2),
-            "uploadedNotesCount": user.get("uploadedNotesCount", 4),
+            "rating": user.get("rating", 5.0),
+            "earnings": user.get("earnings", 0),
+            "completedTasksCount": user.get("completedTasksCount", 0),
+            "uploadedNotesCount": user.get("uploadedNotesCount", 0),
             "sessionId": session_id
         }
     }
@@ -1098,10 +1098,10 @@ def get_user_profile(
         "theme_preference": user.get("theme_preference", "light"),
         "semester": user.get("semester", 6),
         "college": user.get("college", "Nirmala Memorial Foundation College, Kandivali, Mumbai"),
-        "rating": user.get("rating", 4.8),
-        "earnings": user.get("earnings", 650),
-        "completedTasksCount": user.get("completedTasksCount", 2),
-        "uploadedNotesCount": user.get("uploadedNotesCount", 4),
+        "rating": user.get("rating", 5.0),
+        "earnings": user.get("earnings", 0),
+        "completedTasksCount": user.get("completedTasksCount", 0),
+        "uploadedNotesCount": user.get("uploadedNotesCount", 0),
         "sessionId": client_sess_id
     }
 

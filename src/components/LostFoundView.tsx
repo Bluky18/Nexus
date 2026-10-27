@@ -412,10 +412,6 @@ export default function LostFoundView({
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!window.confirm("Are you sure you want to delete this lost & found post?")) {
-      return;
-    }
-
     try {
       const response = await fetch(`${API_URL}/api/v1/lost-found/${itemId}`, {
         method: 'DELETE',

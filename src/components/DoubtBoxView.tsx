@@ -738,7 +738,7 @@ export default function DoubtBoxView({
               </div>
 
               <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3 text-[10px] text-text-secondary leading-normal">
-                Your question will be posted using a completely random alias (e.g. <strong>Anonymous Dolphin</strong>). No real-name profiles, Divisions, or Seat Numbers will be leaked.
+                Your question will be posted using a completely random alias (e.g. <strong>Anonymous Dolphin</strong>). No real-name profiles, personal contact info, or Seat Numbers will be leaked.
               </div>
 
               <div className="pt-2 flex justify-end gap-2">

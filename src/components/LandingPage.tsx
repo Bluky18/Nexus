@@ -22,6 +22,94 @@ import {
 import { Note, Commission, Doubt, LostFoundItem, StudentProfile } from '../types';
 import { Link } from '../router';
 
+interface RollingNumberProps {
+  value: number;
+  decimals?: number;
+  prefix?: string;
+  suffix?: string;
+  duration?: number;
+}
+
+function RollingNumber({
+  value,
+  decimals = 0,
+  prefix = '',
+  suffix = '',
+  duration = 1800,
+}: RollingNumberProps) {
+  const [currentValue, setCurrentValue] = useState(0);
+  const elementRef = React.useRef<HTMLSpanElement>(null);
+  const hasAnimated = React.useRef(false);
+
+  useEffect(() => {
+    const node = elementRef.current;
+    if (!node) return;
+
+    const runRollUp = () => {
+      if (hasAnimated.current) return;
+      hasAnimated.current = true;
+
+      let startTime: number | null = null;
+      let frameId: number;
+
+      const animateStep = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Smooth easeOutExpo curve for snappy start and soft settling
+        const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        const nextVal = ease * value;
+
+        setCurrentValue(nextVal);
+
+        if (progress < 1) {
+          frameId = requestAnimationFrame(animateStep);
+        } else {
+          setCurrentValue(value);
+        }
+      };
+
+      frameId = requestAnimationFrame(animateStep);
+    };
+
+    if (typeof IntersectionObserver !== 'undefined') {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              runRollUp();
+              observer.disconnect();
+            }
+          });
+        },
+        {
+          threshold: 0.15,
+          rootMargin: '0px 0px -40px 0px',
+        }
+      );
+
+      observer.observe(node);
+      return () => observer.disconnect();
+    } else {
+      runRollUp();
+    }
+  }, [value, duration]);
+
+  const formatted = decimals > 0
+    ? currentValue.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      })
+    : Math.round(currentValue).toLocaleString('en-US');
+
+  return (
+    <span ref={elementRef} className="inline-block tabular-nums">
+      {prefix}{formatted}{suffix}
+    </span>
+  );
+}
+
 interface LandingPageProps {
   onGetStarted: () => void;
 }
@@ -522,8 +610,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             
             {/* Stat 1 */}
             <div className="space-y-2 py-6 md:py-0">
-              <p className="text-5xl md:text-6xl font-black text-[#1A1A1A] tracking-tight font-sans">
-                1,200+
+              <p className="text-5xl md:text-6xl font-black text-[#1A1A1A] tracking-tight font-sans tabular-nums">
+                <RollingNumber value={1200} suffix="+" duration={1800} />
               </p>
               <p className="text-[10px] uppercase tracking-widest font-bold text-[#1A1A1A]/50">
                 Notes & Exam PDFs Shared
@@ -532,8 +620,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
             {/* Stat 2 */}
             <div className="space-y-2 py-6 md:py-0">
-              <p className="text-5xl md:text-6xl font-black text-[#1A1A1A] tracking-tight font-sans">
-                99.4%
+              <p className="text-5xl md:text-6xl font-black text-[#1A1A1A] tracking-tight font-sans tabular-nums">
+                <RollingNumber value={99.4} decimals={1} suffix="%" duration={2000} />
               </p>
               <p className="text-[10px] uppercase tracking-widest font-bold text-[#1A1A1A]/50">
                 Doubt Resolution Rate
@@ -542,8 +630,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
             {/* Stat 3 */}
             <div className="space-y-2 py-6 md:py-0">
-              <p className="text-5xl md:text-6xl font-black text-[#1A1A1A] tracking-tight font-sans">
-                14 Days
+              <p className="text-5xl md:text-6xl font-black text-[#1A1A1A] tracking-tight font-sans tabular-nums">
+                <RollingNumber value={14} suffix=" Days" duration={1600} />
               </p>
               <p className="text-[10px] uppercase tracking-widest font-bold text-[#1A1A1A]/50">
                 Automatic Data Cleanups
