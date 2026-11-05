@@ -47,6 +47,8 @@ function isUserAdmin(email?: string): boolean {
 interface User {
   id: string;
   name: string;
+  division?: string;
+  rollNo?: string;
   seatNo: string;
   branch: string;
   email: string;
@@ -65,6 +67,8 @@ const users: User[] = [
   {
     id: 'student-123',
     name: 'Harshit Kataram',
+    division: '',
+    rollNo: '',
     seatNo: 'CS26192',
     branch: 'Computer Science',
     email: 'harshitcsb@gmail.com',
@@ -435,6 +439,8 @@ app.post('/api/v1/auth/signup', (req, res) => {
   const newUser: User = {
     id: `student-${Date.now()}`,
     name,
+    division: req.body.division || '',
+    rollNo: req.body.rollNo || '',
     seatNo: `CS${cleanYear}${randomId}`,
     branch,
     email,
@@ -517,6 +523,8 @@ app.post('/api/v1/auth/google-login', (req, res) => {
       user = {
         id: `student-g-${Date.now()}`,
         name,
+        division: '',
+        rollNo: '',
         seatNo: `CS${cleanYear}${randomId}`,
         branch: 'Computer Science',
         email,
@@ -558,14 +566,23 @@ app.get('/api/v1/user/profile', (req, res) => {
 // User Profile Settings
 app.put('/api/v1/user/profile/settings', (req, res) => {
   const user = getCurrentUser(req);
-  const { theme_preference } = req.body;
-  if (theme_preference) {
-    user.theme_preference = theme_preference;
-  }
+  const { theme_preference, division, rollNo, name, branch, college, seatNo, semester } = req.body;
+  if (theme_preference !== undefined) user.theme_preference = theme_preference;
+  if (division !== undefined) user.division = division;
+  if (rollNo !== undefined) user.rollNo = rollNo;
+  if (name !== undefined) user.name = name;
+  if (branch !== undefined) user.branch = branch;
+  if (college !== undefined) user.college = college;
+  if (seatNo !== undefined) user.seatNo = seatNo;
+  if (semester !== undefined) user.semester = Number(semester);
+
   return res.json({
     status: 'success',
-    message: 'Theme preference updated successfully',
-    theme_preference: user.theme_preference
+    message: 'Profile settings updated successfully',
+    theme_preference: user.theme_preference,
+    division: user.division,
+    rollNo: user.rollNo,
+    user: sanitizeUser(user)
   });
 });
 

@@ -19,6 +19,8 @@ import { API_URL } from './config';
 const INITIAL_PROFILE: StudentProfile = {
   id: 'student-123',
   name: 'Harshit Kataram',
+  division: '',
+  rollNo: '',
   seatNo: 'CS26192',
   branch: 'Computer Science',
   semester: 6,
@@ -696,9 +698,11 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        delete parsed.division;
-        delete parsed.rollNo;
-        return parsed;
+        return {
+          division: '',
+          rollNo: '',
+          ...parsed
+        };
       } catch {
         return INITIAL_PROFILE;
       }

@@ -158,6 +158,8 @@ try:
         users_collection.insert_one({
             "id": "student-123",
             "name": "Harshit Kataram",
+            "division": "",
+            "rollNo": "",
             "seatNo": "CS26192",
             "branch": "Computer Science",
             "email": "harshitcsb@gmail.com",
@@ -236,6 +238,8 @@ except Exception as e:
     users_collection = MockCollection([{
         "id": "student-123",
         "name": "Harshit Kataram",
+        "division": "",
+        "rollNo": "",
         "seatNo": "CS26192",
         "branch": "Computer Science",
         "email": "harshitcsb@gmail.com",
@@ -913,13 +917,22 @@ class SignUpRequest(BaseModel):
     branch: str
     email: str
     password: str
+    division: Optional[str] = ""
+    rollNo: Optional[str] = ""
 
 class LoginRequest(BaseModel):
     email: str
     password: str
 
 class ProfileSettingsUpdate(BaseModel):
-    theme_preference: str
+    theme_preference: Optional[str] = None
+    division: Optional[str] = None
+    rollNo: Optional[str] = None
+    name: Optional[str] = None
+    branch: Optional[str] = None
+    college: Optional[str] = None
+    seatNo: Optional[str] = None
+    semester: Optional[int] = None
 
 def hash_password(password: str) -> str:
     import hashlib
@@ -986,6 +999,8 @@ def auth_signup(request: SignUpRequest):
     user_doc = {
         "id": user_id,
         "name": request.name,
+        "division": request.division or "",
+        "rollNo": request.rollNo or "",
         "seatNo": seat_no,
         "branch": request.branch,
         "email": request.email,
@@ -1009,6 +1024,8 @@ def auth_signup(request: SignUpRequest):
             "user": {
                 "id": user_doc["id"],
                 "name": user_doc["name"],
+                "division": user_doc.get("division", ""),
+                "rollNo": user_doc.get("rollNo", ""),
                 "seatNo": user_doc["seatNo"],
                 "branch": user_doc["branch"],
                 "email": user_doc["email"],
@@ -1056,6 +1073,8 @@ def auth_login(request: LoginRequest):
         "user": {
             "id": user.get("id"),
             "name": user.get("name"),
+            "division": user.get("division", ""),
+            "rollNo": user.get("rollNo", ""),
             "seatNo": user.get("seatNo", "CS26192"),
             "branch": user.get("branch"),
             "email": user.get("email"),
@@ -1094,6 +1113,8 @@ def get_user_profile(
     return {
         "id": user.get("id"),
         "name": user.get("name"),
+        "division": user.get("division", ""),
+        "rollNo": user.get("rollNo", ""),
         "seatNo": user.get("seatNo", "CS26192"),
         "branch": user.get("branch"),
         "email": user.get("email"),
@@ -1114,7 +1135,7 @@ def update_user_settings(
     x_user_id: Optional[str] = Header(None)
 ):
     """
-    Saves theme_preference to the database. Requires Bearer Token.
+    Saves theme_preference, division, rollNo, and academic profile fields to the database. Requires Bearer Token.
     """
     current_user_id = get_current_user_id(authorization, x_user_id)
     decoded = decode_token(current_user_id)
@@ -1128,11 +1149,50 @@ def update_user_settings(
         )
         
     try:
-        users_collection.update_one({"id": sub_id}, {"$set": {"theme_preference": update_in.theme_preference}})
+        update_fields = {}
+        if update_in.theme_preference is not None:
+            update_fields["theme_preference"] = update_in.theme_preference
+        if update_in.division is not None:
+            update_fields["division"] = update_in.division
+        if update_in.rollNo is not None:
+            update_fields["rollNo"] = update_in.rollNo
+        if update_in.name is not None:
+            update_fields["name"] = update_in.name
+        if update_in.branch is not None:
+            update_fields["branch"] = update_in.branch
+        if update_in.college is not None:
+            update_fields["college"] = update_in.college
+        if update_in.seatNo is not None:
+            update_fields["seatNo"] = update_in.seatNo
+        if update_in.semester is not None:
+            update_fields["semester"] = update_in.semester
+
+        if update_fields:
+            users_collection.update_one({"id": sub_id}, {"$set": update_fields})
+            
+        updated = users_collection.find_one({"id": sub_id}) or user
         return {
             "status": "success",
-            "message": "Theme preference updated successfully",
-            "theme_preference": update_in.theme_preference
+            "message": "Profile settings updated successfully",
+            "theme_preference": updated.get("theme_preference", "light"),
+            "division": updated.get("division", ""),
+            "rollNo": updated.get("rollNo", ""),
+            "user": {
+                "id": updated.get("id"),
+                "name": updated.get("name"),
+                "division": updated.get("division", ""),
+                "rollNo": updated.get("rollNo", ""),
+                "seatNo": updated.get("seatNo", "CS26192"),
+                "branch": updated.get("branch"),
+                "email": updated.get("email"),
+                "theme_preference": updated.get("theme_preference", "light"),
+                "semester": updated.get("semester", 6),
+                "college": updated.get("college", "Nirmala Memorial Foundation College, Kandivali, Mumbai"),
+                "rating": updated.get("rating", 5.0),
+                "earnings": updated.get("earnings", 0),
+                "completedTasksCount": updated.get("completedTasksCount", 0),
+                "uploadedNotesCount": updated.get("uploadedNotesCount", 0)
+            }
         }
     except Exception as e:
         raise HTTPException(

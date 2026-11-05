@@ -85,6 +85,16 @@ export default function ProfileView({
                 <span className="text-[10px] font-mono text-text-secondary bg-app border border-border-subtle inline-block px-1.5 py-0.5 rounded">
                   Board Seat No: {profile.seatNo}
                 </span>
+                {Boolean(profile.division) && (
+                  <span className="text-[10px] font-mono text-text-secondary bg-app border border-border-subtle inline-block px-1.5 py-0.5 rounded">
+                    Division: {profile.division}
+                  </span>
+                )}
+                {Boolean(profile.rollNo) && (
+                  <span className="text-[10px] font-mono text-text-secondary bg-app border border-border-subtle inline-block px-1.5 py-0.5 rounded">
+                    Roll No: {profile.rollNo}
+                  </span>
+                )}
               </div>
             </div>
           </div>

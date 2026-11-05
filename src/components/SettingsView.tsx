@@ -13,6 +13,7 @@ import {
   Copy
 } from 'lucide-react';
 import { StudentProfile } from '../types';
+import { API_URL } from '../config';
 
 interface SettingsViewProps {
   profile: StudentProfile;
@@ -37,6 +38,8 @@ export default function SettingsView({
   const [editSemester, setEditSemester] = useState(profile.semester.toString());
   const [editSeatNo, setEditSeatNo] = useState(profile.seatNo);
   const [editCollege, setEditCollege] = useState(profile.college);
+  const [editDivision, setEditDivision] = useState(profile.division || '');
+  const [editRollNo, setEditRollNo] = useState(profile.rollNo || '');
   const [isSavedNotify, setIsSavedNotify] = useState(false);
 
   // Simulated Security/Account settings state
@@ -54,18 +57,45 @@ export default function SettingsView({
     setEditSemester(profile.semester.toString());
     setEditSeatNo(profile.seatNo);
     setEditCollege(profile.college);
+    setEditDivision(profile.division || '');
+    setEditRollNo(profile.rollNo || '');
   }, [profile]);
 
   const handleSaveAcademicSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    setProfile(prev => ({
-      ...prev,
+    const updatedProfile: StudentProfile = {
+      ...profile,
       name: editName,
       branch: editBranch,
       semester: parseInt(editSemester),
       seatNo: editSeatNo,
-      college: editCollege
-    }));
+      college: editCollege,
+      division: editDivision.trim(),
+      rollNo: editRollNo.trim()
+    };
+    setProfile(updatedProfile);
+    localStorage.setItem('nexus_profile', JSON.stringify(updatedProfile));
+
+    const token = localStorage.getItem('nexus_token');
+    if (token) {
+      fetch(`${API_URL}/api/v1/user/profile/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editName,
+          branch: editBranch,
+          semester: parseInt(editSemester),
+          seatNo: editSeatNo,
+          college: editCollege,
+          division: editDivision.trim(),
+          rollNo: editRollNo.trim()
+        })
+      }).catch(err => console.error('Failed to sync academic settings to backend:', err));
+    }
+
     setIsSavedNotify(true);
     setTimeout(() => setIsSavedNotify(false), 3000);
   };
@@ -169,6 +199,32 @@ export default function SettingsView({
                   required
                   value={editSeatNo}
                   onChange={(e) => setEditSeatNo(e.target.value)}
+                  className="w-full p-2.5 bg-app border border-border-subtle rounded-lg text-xs text-text-primary focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-text-secondary uppercase">Division (Optional)</label>
+                <input
+                  id="edit-division-input"
+                  type="text"
+                  placeholder="e.g. A, B, or leave blank"
+                  value={editDivision}
+                  onChange={(e) => setEditDivision(e.target.value)}
+                  className="w-full p-2.5 bg-app border border-border-subtle rounded-lg text-xs text-text-primary focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-text-secondary uppercase">Class Roll No (Optional)</label>
+                <input
+                  id="edit-rollno-input"
+                  type="text"
+                  placeholder="e.g. 24, 45, or leave blank"
+                  value={editRollNo}
+                  onChange={(e) => setEditRollNo(e.target.value)}
                   className="w-full p-2.5 bg-app border border-border-subtle rounded-lg text-xs text-text-primary focus:outline-hidden"
                 />
               </div>
