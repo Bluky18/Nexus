@@ -8,8 +8,6 @@ interface NotFoundViewProps {
 }
 
 export default function NotFoundView({ onGoHome, isAuthenticated = false }: NotFoundViewProps) {
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-
   return (
     <div id="not-found-view" className="min-h-[70vh] flex items-center justify-center p-6 text-center">
       <div className="max-w-md w-full bg-surface border border-border-subtle rounded-2xl p-8 shadow-sm space-y-6">
@@ -25,7 +23,7 @@ export default function NotFoundView({ onGoHome, isAuthenticated = false }: NotF
             Off Campus Territory
           </h1>
           <p className="text-xs text-text-secondary leading-relaxed">
-            The requested page {currentPath ? <code className="px-1.5 py-0.5 rounded bg-app border border-border-subtle font-mono text-[11px] text-accent-primary">{currentPath}</code> : 'you requested'} does not exist or may have been relocated.
+            The page you requested does not exist or may have been relocated. Use the navigation links below to return to the active campus utilities.
           </p>
         </div>
 
