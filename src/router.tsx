@@ -8,17 +8,17 @@ export type TabId =
   | 'lost-found'
   | 'profile'
   | 'settings'
-  | 'admin';
+  | 'admin'
+  | 'not-found';
 
 export type AppRoute = 
   | 'landing'
   | 'auth'
-  | TabId
-  | 'not-found';
+  | TabId;
 
 export interface RouteInfo {
   path: string;
-  tab: TabId | 'landing' | 'auth' | 'not-found';
+  tab: TabId | 'landing' | 'auth';
   title: string;
 }
 
@@ -31,7 +31,8 @@ export const TAB_TO_PATH: Record<TabId, string> = {
   'lost-found': '/lost-found',
   'profile': '/profile',
   'settings': '/settings',
-  'admin': '/admin'
+  'admin': '/admin',
+  'not-found': '/404'
 };
 
 // Route definitions and their page titles
@@ -52,7 +53,8 @@ const ROUTE_TITLES: Record<string, string> = {
   '/admin': 'Nexus | Content Moderation Hub',
   '/login': 'Nexus | Student Sign In',
   '/signup': 'Nexus | Student Registration',
-  '/auth': 'Nexus | Student Authentication'
+  '/auth': 'Nexus | Student Authentication',
+  '/404': 'Nexus | 404 - Page Not Found'
 };
 
 export function resolveRoute(pathname: string, isAuthenticated: boolean): AppRoute {
@@ -98,6 +100,10 @@ export function resolveRoute(pathname: string, isAuthenticated: boolean): AppRou
     return 'admin';
   }
 
+  if (cleanPath === '/404') {
+    return 'not-found';
+  }
+
   return 'not-found';
 }
 
@@ -127,7 +133,7 @@ export function RouterProvider({ children, isAuthenticated }: RouterProviderProp
   }, [pathname, isAuthenticated]);
 
   const currentTab: TabId = useMemo(() => {
-    if (route === 'landing' || route === 'auth' || route === 'not-found') {
+    if (route === 'landing' || route === 'auth') {
       return 'dashboard';
     }
     return route as TabId;
@@ -163,9 +169,13 @@ export function RouterProvider({ children, isAuthenticated }: RouterProviderProp
   // Update dynamic page title based on current path
   useEffect(() => {
     const cleanPath = pathname.toLowerCase().replace(/\/+$/, '') || '/';
-    const dynamicTitle = ROUTE_TITLES[cleanPath] || 'Nexus | Student Platform';
-    document.title = dynamicTitle;
-  }, [pathname]);
+    if (route === 'not-found') {
+      document.title = 'Nexus | 404 - Page Not Found';
+    } else {
+      const dynamicTitle = ROUTE_TITLES[cleanPath] || 'Nexus | Student Platform';
+      document.title = dynamicTitle;
+    }
+  }, [pathname, route]);
 
   const contextValue = useMemo(() => ({
     pathname,

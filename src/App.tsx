@@ -11,7 +11,7 @@ import AuthView from './components/AuthView';
 import AdminDashboard from './components/AdminDashboard';
 import LandingPage from './components/LandingPage';
 import NotFoundView from './components/NotFoundView';
-import { RouterProvider, useRouter, TabId } from './router';
+import { RouterProvider, useRouter, TabId, Link } from './router';
 import { Note, Commission, Doubt, LostFoundItem, StudentProfile } from './types';
 import { API_URL } from './config';
 
@@ -356,7 +356,9 @@ function NexusAppContent({
 
   // Sync state to local storage when changed
   useEffect(() => {
-    localStorage.setItem('nexus_current_tab', currentTab);
+    if (currentTab && currentTab !== 'not-found') {
+      localStorage.setItem('nexus_current_tab', currentTab);
+    }
   }, [currentTab]);
 
   useEffect(() => {
@@ -634,8 +636,9 @@ function NexusAppContent({
             }}
           />
         );
+      case 'not-found':
       default:
-        return <NotFoundView onGoHome={() => navigateToTab('dashboard')} />;
+        return <NotFoundView onGoHome={() => navigateToTab('dashboard')} isAuthenticated={isAuthenticated} />;
     }
   };
 
@@ -649,6 +652,32 @@ function NexusAppContent({
             navigate('/');
           }} 
         />
+      );
+    }
+    if (route === 'not-found') {
+      return (
+        <div className="min-h-screen bg-app flex flex-col">
+          <header className="h-16 border-b border-border-subtle bg-surface px-6 flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-accent-primary flex items-center justify-center text-white font-bold text-lg">
+                N
+              </div>
+              <span className="font-bold text-lg tracking-wider text-text-primary">NEXUS</span>
+            </Link>
+            <button
+              onClick={() => {
+                setShowAuth(true);
+                navigate('/login');
+              }}
+              className="px-3.5 py-1.5 bg-accent-primary hover:bg-accent-hover text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+            >
+              Sign In
+            </button>
+          </header>
+          <main className="flex-1 flex items-center justify-center p-4">
+            <NotFoundView onGoHome={() => navigate('/')} isAuthenticated={false} />
+          </main>
+        </div>
       );
     }
     return (
@@ -671,7 +700,11 @@ function NexusAppContent({
       toggleTheme={toggleTheme}
       profile={profile}
     >
-      {renderTabContent()}
+      {route === 'not-found' ? (
+        <NotFoundView onGoHome={() => navigateToTab('dashboard')} isAuthenticated={true} />
+      ) : (
+        renderTabContent()
+      )}
     </Layout>
   );
 }
