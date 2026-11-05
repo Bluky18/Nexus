@@ -11,7 +11,8 @@ import {
   Compass, 
   User,
   Menu,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Shield
 } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { Link, TabId } from '../router';
@@ -45,8 +46,12 @@ export default function Layout({
     { id: 'tasks', label: 'Tasks', icon: Briefcase, path: '/tasks' },
     { id: 'doubt-box', label: 'Doubt Box', icon: HelpCircle, path: '/doubts' },
     { id: 'lost-found', label: 'Lost & Found', icon: Compass, path: '/lost-found' },
+    ...(profile?.isAdmin ? [{ id: 'admin' as TabId, label: 'Moderation', icon: Shield, path: '/admin' }] : []),
     { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
+
+  // Mobile bottom bar keeps dedicated content tabs; logo links to dashboard and moderation stays on desktop/settings
+  const mobileNavigationItems = navigationItems.filter(item => item.id !== 'dashboard' && item.id !== 'admin');
 
   const handleTabClick = (tabId: string) => {
     setCurrentTab(tabId);
@@ -100,8 +105,17 @@ export default function Layout({
                 } ${isCollapsed ? 'justify-center px-0' : 'px-4'}`}
                 title={item.label}
               >
-                <IconComponent size={18} className={isActive ? 'text-accent-primary' : 'text-text-secondary'} />
-                {!isCollapsed && item.label}
+                <IconComponent size={18} className={isActive ? 'text-accent-primary' : item.id === 'admin' ? 'text-color-danger' : 'text-text-secondary'} />
+                {!isCollapsed && (
+                  <span className="flex items-center justify-between flex-1">
+                    <span>{item.label}</span>
+                    {item.id === 'admin' && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-color-danger/10 text-color-danger border border-color-danger/20 uppercase tracking-wider">
+                        Staff
+                      </span>
+                    )}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -121,7 +135,14 @@ export default function Layout({
             </div>
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate text-text-primary">{profile ? profile.name : 'Guest User'}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-semibold truncate text-text-primary">{profile ? profile.name : 'Guest User'}</p>
+                  {profile?.isAdmin && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-color-danger/10 text-color-danger border border-color-danger/25 uppercase tracking-wider">
+                      Admin
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs truncate text-text-secondary">
                   {profile ? `${profile.branch || 'B.Sc. CS'} • Sem ${profile.semester || 6}` : 'Department • Sem'}
                 </p>
@@ -154,12 +175,20 @@ export default function Layout({
               id="mobile-logo-btn"
               to="/homepage"
               onClick={() => handleTabClick('dashboard')}
-              className="flex items-center gap-2 md:hidden cursor-pointer"
+              className={`flex items-center gap-2 md:hidden cursor-pointer active:scale-95 transition-all select-none ${
+                currentTab === 'dashboard' ? 'opacity-100' : 'opacity-90 hover:opacity-100'
+              }`}
+              title="Go to Dashboard"
             >
-              <div className="w-8 h-8 rounded-lg bg-accent-primary flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-8 h-8 rounded-lg bg-accent-primary flex items-center justify-center text-white font-bold text-lg shadow-xs">
                 N
               </div>
-              <div className="font-bold tracking-wider text-text-primary text-base">NEXUS</div>
+              <div className="font-bold tracking-wider text-text-primary text-base flex items-center gap-1.5">
+                <span>NEXUS</span>
+                <span className="text-[9px] bg-accent-muted text-accent-hover dark:bg-accent-muted/20 dark:text-accent-primary px-1.5 py-0.2 rounded-full font-medium">
+                  v1.0
+                </span>
+              </div>
             </Link>
           </div>
 
@@ -216,12 +245,12 @@ export default function Layout({
         </main>
       </div>
 
-      {/* MOBILE BOTTOM NAVIGATION: fixed bottom bar like YouTube mobile app */}
+      {/* MOBILE BOTTOM NAVIGATION: fixed bottom bar with clean 5 tabs (Notes, Tasks, Doubts, Lost & Found, Profile) */}
       <nav 
         id="mobile-bottom-navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 h-16 bg-surface border-t border-border-subtle flex items-center justify-around md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 h-16 bg-surface border-t border-border-subtle flex items-center justify-around md:hidden px-1"
       >
-        {navigationItems.map((item) => {
+        {mobileNavigationItems.map((item) => {
           const IconComponent = item.icon;
           const isActive = currentTab === item.id;
           return (
@@ -230,14 +259,14 @@ export default function Layout({
               to={item.path}
               id={`mobile-bottom-nav-item-${item.id}`}
               onClick={() => handleTabClick(item.id)}
-              className="flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all duration-150"
+              className="flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all duration-150 active:scale-95 cursor-pointer"
             >
               <IconComponent 
                 size={20} 
                 className={isActive ? 'text-accent-primary scale-110' : 'text-text-secondary'} 
               />
               <span 
-                className={`text-[9px] mt-1 font-medium tracking-tight truncate max-w-full px-0.5 transition-colors ${
+                className={`text-[10px] mt-1 font-medium tracking-tight truncate max-w-full px-0.5 transition-colors ${
                   isActive ? 'text-accent-primary font-semibold' : 'text-text-secondary'
                 }`}
               >

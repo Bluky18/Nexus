@@ -107,11 +107,11 @@ export default function AdminDashboard({
         }
       } else {
         const errData = await response.json();
-        alert(`Failed to delete content: ${errData.error || response.statusText}`);
+        setError(`Failed to delete content: ${errData.error || response.statusText}`);
       }
     } catch (err) {
       console.error('Failed to delete reported item:', err);
-      alert('Network error occurred while trying to delete.');
+      setError('Network error occurred while trying to delete.');
     } finally {
       setActionInProgress(null);
     }
@@ -136,11 +136,11 @@ export default function AdminDashboard({
         }
       } else {
         const errData = await response.json();
-        alert(`Failed to dismiss report: ${errData.error || response.statusText}`);
+        setError(`Failed to dismiss report: ${errData.error || response.statusText}`);
       }
     } catch (err) {
       console.error('Failed to dismiss report:', err);
-      alert('Network error occurred while dismissing report.');
+      setError('Network error occurred while dismissing report.');
     } finally {
       setActionInProgress(null);
     }
@@ -311,15 +311,16 @@ export default function AdminDashboard({
 
         {/* List of reports */}
         {loading ? (
-          <div className="py-20 text-center text-text-secondary space-y-2">
-            <RefreshCw className="animate-spin mx-auto text-accent-primary" size={24} />
-            <p className="text-xs">Accessing secured MongoDB shards...</p>
+          <div className="py-20 text-center text-text-secondary space-y-3">
+            <span className="loading loading-spinner loading-lg text-primary mx-auto block" />
+            <p className="text-xs font-medium">Accessing secured moderation queue...</p>
           </div>
         ) : error ? (
-          <div className="py-16 text-center text-color-danger space-y-2 px-4">
-            <AlertOctagon size={32} className="mx-auto" />
-            <h3 className="text-sm font-bold">Failed to Fetch Flagged Content</h3>
-            <p className="text-xs max-w-sm mx-auto text-text-secondary">{error}</p>
+          <div className="py-12 px-4 max-w-lg mx-auto">
+            <div className="alert alert-error shadow-sm text-xs font-semibold rounded-xl flex items-center gap-2">
+              <AlertOctagon size={18} />
+              <span>{error}</span>
+            </div>
           </div>
         ) : filteredReports.length === 0 ? (
           <div className="py-20 text-center space-y-3">
@@ -349,12 +350,12 @@ export default function AdminDashboard({
                   {/* Item metadata details */}
                   <div className="space-y-2.5 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`inline-flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md ${badgeStyle}`}>
+                      <span className={`badge badge-sm inline-flex items-center gap-1 uppercase font-bold tracking-wider px-2 py-0.5 border-0 ${badgeStyle}`}>
                         <IconType size={11} />
                         {report.contentType}
                       </span>
                       {report.subject && (
-                        <span className="text-[10px] text-text-secondary bg-bg-app border border-border-subtle px-2 py-0.5 rounded-md">
+                        <span className="badge badge-sm badge-outline text-[10px] text-text-secondary border-border-subtle">
                           {report.subject}
                         </span>
                       )}

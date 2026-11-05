@@ -158,8 +158,7 @@ try:
         users_collection.insert_one({
             "id": "student-123",
             "name": "Harshit Kataram",
-            "division": "A",
-            "rollNo": "24",
+            "seatNo": "CS26192",
             "branch": "Computer Science",
             "email": "harshitcsb@gmail.com",
             "password_hash": hashlib.sha256("password123".encode()).hexdigest(),
@@ -237,8 +236,7 @@ except Exception as e:
     users_collection = MockCollection([{
         "id": "student-123",
         "name": "Harshit Kataram",
-        "division": "A",
-        "rollNo": "24",
+        "seatNo": "CS26192",
         "branch": "Computer Science",
         "email": "harshitcsb@gmail.com",
         "password_hash": hashlib.sha256("password123".encode()).hexdigest(),
@@ -912,8 +910,6 @@ def delete_lost_found(
 
 class SignUpRequest(BaseModel):
     name: str
-    division: Optional[str] = "A"
-    rollNo: Optional[str] = "24"
     branch: str
     email: str
     password: str
@@ -972,7 +968,7 @@ def decode_token(token: str) -> dict:
 @app.post("/api/v1/auth/signup", status_code=status.HTTP_201_CREATED)
 def auth_signup(request: SignUpRequest):
     """
-    Registers a new student user in MongoDB with Name, Division, Roll No, Branch, Email, Hashed Password, and theme_preference.
+    Registers a new student user in MongoDB with Name, Branch, Email, Hashed Password, and generated Board Seat Number.
     """
     existing = users_collection.find_one({"email": request.email})
     if existing:
@@ -982,12 +978,15 @@ def auth_signup(request: SignUpRequest):
         )
     
     # Store user in MongoDB
+    import random
+    clean_year = str(datetime.now().year)[-2:]
+    random_num = random.randint(1000, 9999)
+    seat_no = f"CS{clean_year}{random_num}"
     user_id = f"student-{int(datetime.now().timestamp())}"
     user_doc = {
         "id": user_id,
         "name": request.name,
-        "division": request.division,
-        "rollNo": request.rollNo,
+        "seatNo": seat_no,
         "branch": request.branch,
         "email": request.email,
         "password_hash": hash_password(request.password),
@@ -1010,11 +1009,16 @@ def auth_signup(request: SignUpRequest):
             "user": {
                 "id": user_doc["id"],
                 "name": user_doc["name"],
-                "division": user_doc["division"],
-                "rollNo": user_doc["rollNo"],
+                "seatNo": user_doc["seatNo"],
                 "branch": user_doc["branch"],
                 "email": user_doc["email"],
                 "theme_preference": user_doc["theme_preference"],
+                "semester": user_doc["semester"],
+                "college": user_doc["college"],
+                "rating": user_doc["rating"],
+                "earnings": user_doc["earnings"],
+                "completedTasksCount": user_doc["completedTasksCount"],
+                "uploadedNotesCount": user_doc["uploadedNotesCount"],
                 "sessionId": session_id
             }
         }
@@ -1052,8 +1056,7 @@ def auth_login(request: LoginRequest):
         "user": {
             "id": user.get("id"),
             "name": user.get("name"),
-            "division": user.get("division"),
-            "rollNo": user.get("rollNo"),
+            "seatNo": user.get("seatNo", "CS26192"),
             "branch": user.get("branch"),
             "email": user.get("email"),
             "theme_preference": user.get("theme_preference", "light"),
@@ -1091,8 +1094,7 @@ def get_user_profile(
     return {
         "id": user.get("id"),
         "name": user.get("name"),
-        "division": user.get("division"),
-        "rollNo": user.get("rollNo"),
+        "seatNo": user.get("seatNo", "CS26192"),
         "branch": user.get("branch"),
         "email": user.get("email"),
         "theme_preference": user.get("theme_preference", "light"),

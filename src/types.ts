@@ -98,8 +98,6 @@ export interface LostFoundItem {
 export interface StudentProfile {
   id?: string;
   name: string;
-  division?: string;
-  rollNo?: string;
   seatNo: string;
   branch: string;
   semester: number;

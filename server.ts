@@ -31,13 +31,22 @@ function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
+// Admin / Moderation Email Allowlist
+const ADMIN_EMAILS: string[] = (process.env.ADMIN_EMAILS || 'harshitcsb@gmail.com')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
+
+function isUserAdmin(email?: string): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
+
 // --- INITIAL IN-MEMORY DATA STORE ---
 
 interface User {
   id: string;
   name: string;
-  division?: string;
-  rollNo?: string;
   seatNo: string;
   branch: string;
   email: string;
@@ -67,7 +76,7 @@ const users: User[] = [
     earnings: 0,
     completedTasksCount: 0,
     uploadedNotesCount: 0,
-    isAdmin: true
+    isAdmin: isUserAdmin('harshitcsb@gmail.com')
   }
 ];
 
@@ -382,11 +391,18 @@ function getCurrentUser(req: express.Request): User {
   }
 
   if (userId) {
-    const user = users.find(u => u.id === userId || u.email === userId);
-    if (user) return user;
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    if (user) {
+      user.isAdmin = isUserAdmin(user.email);
+      return user;
+    }
   }
 
-  return users[0];
+  const defaultUser = users[0];
+  if (defaultUser) {
+    defaultUser.isAdmin = isUserAdmin(defaultUser.email);
+  }
+  return defaultUser;
 }
 
 // User without password
@@ -430,11 +446,11 @@ app.post('/api/v1/auth/signup', (req, res) => {
     earnings: 0,
     completedTasksCount: 0,
     uploadedNotesCount: 0,
-    isAdmin: email.toLowerCase() === 'harshitcsb@gmail.com'
+    isAdmin: isUserAdmin(email)
   };
 
   users.push(newUser);
-  const token = jwt.sign({ sub: newUser.id, email: newUser.email }, JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ sub: newUser.id, email: newUser.email, isAdmin: newUser.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
 
   const sessionId = generateSessionId();
   return res.status(201).json({
@@ -463,7 +479,8 @@ app.post('/api/v1/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password', detail: 'Invalid email or password' });
   }
 
-  const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+  user.isAdmin = isUserAdmin(user.email);
+  const token = jwt.sign({ sub: user.id, email: user.email, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
   const sessionId = generateSessionId();
   return res.json({
     status: 'success',
@@ -511,12 +528,14 @@ app.post('/api/v1/auth/google-login', (req, res) => {
         earnings: 0,
         completedTasksCount: 0,
         uploadedNotesCount: 0,
-        isAdmin: email.toLowerCase() === 'harshitcsb@gmail.com'
+        isAdmin: isUserAdmin(email)
       };
       users.push(user);
+    } else {
+      user.isAdmin = isUserAdmin(user.email);
     }
 
-    const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ sub: user.id, email: user.email, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
     const sessionId = generateSessionId();
     return res.json({
       status: 'success',
@@ -917,6 +936,11 @@ app.post('/api/v1/lost-found/:id/report', (req, res) => {
 
 // Admin: Get all flagged reports
 app.get('/api/v1/admin/reports', (req, res) => {
+  const user = getCurrentUser(req);
+  if (!user || !user.isAdmin) {
+    return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+  }
+
   const reports = [
     ...notes.filter(n => n.reported).map(n => ({
       id: n.id,
@@ -951,6 +975,11 @@ app.get('/api/v1/admin/reports', (req, res) => {
 
 // Admin: Dismiss report
 app.post('/api/v1/admin/reports/:id/dismiss', (req, res) => {
+  const user = getCurrentUser(req);
+  if (!user || !user.isAdmin) {
+    return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+  }
+
   const { id } = req.params;
   const note = notes.find(n => n.id === id);
   if (note) {

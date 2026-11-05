@@ -300,6 +300,13 @@ function NexusAppContent({
     }
   }, [isAuthenticated, pathname, navigate]);
 
+  // If non-admin attempts to access /admin, redirect to /homepage
+  useEffect(() => {
+    if (isAuthenticated && pathname === '/admin' && !profile.isAdmin) {
+      navigate('/homepage', { replace: true });
+    }
+  }, [isAuthenticated, pathname, profile.isAdmin, navigate]);
+
   const setCurrentTab = (tab: string) => {
     navigateToTab(tab as TabId);
   };

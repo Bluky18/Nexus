@@ -255,29 +255,45 @@ export default function SettingsView({
                   <p className="font-semibold text-text-primary">Material Theme</p>
                   <p className="text-[10px] text-text-secondary mt-0.5">{theme === 'dark' ? 'Slate Dark Mode' : 'Clean Light Mode'}</p>
                 </div>
-                <button
-                  id="settings-theme-toggle"
-                  type="button"
-                  onClick={() => onThemeToggle(theme === 'light' ? 'dark' : 'light')}
-                  className="p-2 bg-app hover:bg-bg-hover border border-border-subtle rounded-lg text-text-primary cursor-pointer transition-colors"
-                  title="Toggle Theme"
-                >
-                  {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-                </button>
+                <div className="tooltip tooltip-left" data-tip={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}>
+                  <button
+                    id="settings-theme-toggle"
+                    type="button"
+                    onClick={() => onThemeToggle(theme === 'light' ? 'dark' : 'light')}
+                    className="p-2 bg-app hover:bg-bg-hover border border-border-subtle rounded-lg text-text-primary cursor-pointer transition-colors"
+                  >
+                    {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Admin Module Panel - Only visible to roots */}
+          {/* Admin Role Verification Card - Only visible to authorized administrators */}
           {profile.isAdmin && (
-            <div id="admin-root-panel" className="bg-surface border border-border-subtle rounded-xl p-5 space-y-4 shadow-xs">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-color-danger pb-2 border-b border-border-subtle flex items-center gap-1.5">
-                <Shield size={14} className="text-color-danger fill-color-danger/10" /> Admin Moderation
-              </h2>
+            <div id="admin-root-panel" className="bg-surface border border-color-danger/20 rounded-xl p-5 space-y-4 shadow-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-color-danger flex items-center gap-1.5">
+                  <Shield size={14} className="text-color-danger fill-color-danger/10" /> Staff Moderation
+                </h2>
+                <span className="badge badge-error badge-outline text-[10px] font-bold uppercase tracking-wider py-0.5">
+                  Verified
+                </span>
+              </div>
               <div className="space-y-3">
                 <p className="text-xs text-text-secondary leading-relaxed">
-                  You have secure Root Administrator access to audit and delete reports inside academic boards.
+                  Your account has administrative permissions verified via authorized Gmail allowlist ({profile.email || 'harshitcsb@gmail.com'}). You can audit and moderate flagged content across all campus boards.
                 </p>
+                <div className="p-2.5 rounded-lg bg-app border border-border-subtle text-xs space-y-1">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-text-secondary">Access Method:</span>
+                    <span className="font-medium text-text-primary">Sidebar &gt; Moderation</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-text-secondary">Role:</span>
+                    <span className="font-medium text-color-danger">Content Administrator</span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   id="launch-admin-hub-btn"
@@ -285,7 +301,7 @@ export default function SettingsView({
                   className="w-full py-2 bg-color-danger hover:opacity-90 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
                 >
                   <Shield size={14} />
-                  <span>Launch Moderation Hub</span>
+                  <span>Open Moderation Hub</span>
                 </button>
               </div>
             </div>
@@ -306,20 +322,22 @@ export default function SettingsView({
                 <span className="font-mono text-xs text-text-primary truncate max-w-[200px]" title={profile.sessionId || 'N/A'}>
                   {profile.sessionId || 'Local Session Active'}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (profile.sessionId) {
-                      navigator.clipboard.writeText(profile.sessionId);
-                      setCopiedSession(true);
-                      setTimeout(() => setCopiedSession(false), 2000);
-                    }
-                  }}
-                  className="flex items-center gap-1 text-[10px] font-bold text-accent-primary hover:text-accent-hover cursor-pointer px-2 py-1 rounded bg-accent-muted/15"
-                >
-                  {copiedSession ? <Check size={11} /> : <Copy size={11} />}
-                  <span>{copiedSession ? 'Copied' : 'Copy'}</span>
-                </button>
+                <div className="tooltip tooltip-left" data-tip={copiedSession ? "Copied!" : "Copy Token"}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (profile.sessionId) {
+                        navigator.clipboard.writeText(profile.sessionId);
+                        setCopiedSession(true);
+                        setTimeout(() => setCopiedSession(false), 2000);
+                      }
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-bold text-accent-primary hover:text-accent-hover cursor-pointer px-2 py-1 rounded bg-accent-muted/15"
+                  >
+                    {copiedSession ? <Check size={11} /> : <Copy size={11} />}
+                    <span>{copiedSession ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

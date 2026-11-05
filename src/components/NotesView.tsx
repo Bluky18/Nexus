@@ -434,17 +434,15 @@ export default function NotesView({
   return (
     <div id="notes-view" className="space-y-6 max-w-7xl mx-auto pb-10">
       
-      {/* Google Drive Breadcrumbs & Header */}
+      {/* Header and Action Controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-1.5 text-xs text-text-secondary mb-1">
-            <span className="hover:text-text-primary cursor-pointer">Nexus Drive</span>
-            <ChevronRight size={12} />
-            <span className="font-semibold text-accent-primary">Study Materials</span>
-          </div>
           <h1 className="text-xl font-bold text-text-primary flex items-center gap-2">
-            <Folder className="text-accent-primary fill-accent-primary/20" size={22} /> Study Materials Drive
+            <BookOpen className="text-accent-primary" size={22} /> Academic Notes & Study Materials
           </h1>
+          <p className="text-xs text-text-secondary mt-0.5">
+            Peer-reviewed lecture notes, university exam papers, and laboratory cheat sheets.
+          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -1168,13 +1166,23 @@ export default function NotesView({
           </div>
         </div>
       )}
-      {/* REPORT MODAL */}
+      {/* Report Modal (DaisyUI Modal) */}
       {reportingNoteId && (
-        <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="bg-surface border border-border-subtle rounded-xl max-w-md w-full p-6 space-y-4 shadow-lg">
+        <dialog 
+          className="modal modal-open z-50 bg-black/60 backdrop-blur-xs p-4"
+          onClick={() => {
+            setReportingNoteId(null);
+            setReportCategory('Inappropriate Content');
+            setReportOtherText('');
+          }}
+        >
+          <div 
+            className="modal-box bg-surface border border-border-subtle rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
               <h3 className="text-sm font-bold text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
-                <AlertTriangle size={16} className="text-color-danger animate-pulse" /> Report Study Material
+                <AlertTriangle size={16} className="text-color-danger" /> Report Study Material
               </h3>
               <button 
                 onClick={() => {
@@ -1182,9 +1190,9 @@ export default function NotesView({
                   setReportCategory('Inappropriate Content');
                   setReportOtherText('');
                 }}
-                className="text-text-secondary hover:text-text-primary p-1 rounded-lg"
+                className="btn btn-sm btn-ghost btn-circle text-text-secondary hover:text-text-primary"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
@@ -1194,7 +1202,7 @@ export default function NotesView({
                 <select
                   value={reportCategory}
                   onChange={(e) => setReportCategory(e.target.value)}
-                  className="w-full p-2 bg-app border border-border-subtle rounded-lg text-xs text-text-primary focus:outline-hidden cursor-pointer"
+                  className="w-full p-2.5 bg-app border border-border-subtle rounded-lg text-xs text-text-primary focus:outline-hidden cursor-pointer"
                 >
                   <option value="Inappropriate Content">Inappropriate Content</option>
                   <option value="Spam or Advertising">Spam or Advertising</option>
@@ -1213,42 +1221,44 @@ export default function NotesView({
                     value={reportOtherText}
                     onChange={(e) => setReportOtherText(e.target.value)}
                     placeholder="Provide details about the issue..."
-                    className="w-full p-2 text-xs bg-app border border-border-subtle rounded-lg focus:outline-hidden text-text-primary placeholder-text-secondary"
+                    className="w-full p-2.5 text-xs bg-app border border-border-subtle rounded-lg focus:outline-hidden text-text-primary placeholder-text-secondary"
                   />
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="modal-action flex justify-end gap-2 pt-2">
               <button
+                type="button"
                 onClick={() => {
                   setReportingNoteId(null);
                   setReportCategory('Inappropriate Content');
                   setReportOtherText('');
                 }}
-                className="px-4 py-2 border border-border-subtle hover:bg-bg-hover text-text-secondary hover:text-text-primary text-xs font-semibold rounded-lg"
+                className="px-4 py-2 border border-border-subtle hover:bg-bg-hover text-text-secondary hover:text-text-primary text-xs font-semibold rounded-lg transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => handleReport(reportingNoteId)}
-                className="px-4 py-2 bg-color-danger hover:opacity-90 text-white text-xs font-bold rounded-lg cursor-pointer"
+                className="px-4 py-2 bg-color-danger hover:opacity-90 text-white text-xs font-bold rounded-lg cursor-pointer transition-opacity"
               >
                 Submit Report
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
-      {/* RESPONSIVE IN-APP DELETE CONFIRMATION MODAL (Replaces blocked window.confirm) */}
+      {/* RESPONSIVE IN-APP DELETE CONFIRMATION MODAL (DaisyUI Modal) */}
       {noteToDelete && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+        <dialog 
+          className="modal modal-open z-50 bg-black/60 backdrop-blur-xs p-4"
           onClick={() => setNoteToDelete(null)}
         >
           <div 
-            className="bg-surface border border-border-subtle rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4"
+            className="modal-box bg-surface border border-border-subtle rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3.5">
@@ -1274,7 +1284,7 @@ export default function NotesView({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-2">
+            <div className="modal-action flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setNoteToDelete(null)}
@@ -1293,14 +1303,16 @@ export default function NotesView({
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
-      {/* Floating Action Toast */}
+      {/* Floating Action Toast (DaisyUI Toast) */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xl flex items-center gap-2 border border-border-subtle">
-          <Check size={14} className="text-emerald-500" />
-          <span>{toastMessage}</span>
+        <div className="toast toast-end toast-bottom z-50 pb-6 pr-6">
+          <div className="alert alert-success shadow-lg text-xs font-semibold py-2.5 px-4 rounded-xl flex items-center gap-2 border border-border-subtle">
+            <Check size={14} className="text-white" />
+            <span className="text-white">{toastMessage}</span>
+          </div>
         </div>
       )}
     </div>

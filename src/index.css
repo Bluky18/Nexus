@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "daisyui";
 
 @theme {
   --color-bg-app: var(--bg-app);
@@ -54,6 +55,16 @@
   --primary: var(--accent-primary);
   --primary-hover: var(--accent-hover);
   --border: var(--border-subtle);
+
+  /* DaisyUI Theme Mapping - Light */
+  --color-base-100: #FFFFFF;
+  --color-base-200: #F7F7F7;
+  --color-base-300: #E0E2E1;
+  --color-base-content: #1F1F1F;
+  --color-error: #D93025;
+  --color-error-content: #ffffff;
+  --color-neutral: #1F1F1F;
+  --color-neutral-content: #ffffff;
 }
 
 /* --- DARK MODE (YouTube / Reddit Mobile style) --- */
@@ -85,6 +96,16 @@
   --primary: var(--accent-primary);
   --primary-hover: var(--accent-hover);
   --border: var(--border-subtle);
+
+  /* DaisyUI Theme Mapping - Dark */
+  --color-base-100: #1E1E1E;
+  --color-base-200: #000000;
+  --color-base-300: #333333;
+  --color-base-content: #E3E3E3;
+  --color-error: #F28B82;
+  --color-error-content: #000000;
+  --color-neutral: #282828;
+  --color-neutral-content: #E3E3E3;
 }
 
 /* Global Styles overrides to respect CSS Variables color theme */
