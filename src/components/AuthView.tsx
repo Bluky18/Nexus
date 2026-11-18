@@ -52,6 +52,10 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setError('');
     setSuccessMsg('');
+    if (!credentialResponse?.credential) {
+      setError('Google did not return an ID token. Please try again.');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -63,7 +67,7 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
 
       const data = await parseJsonResponse(response);
       if (!response.ok) {
-        throw new Error(data.error || 'Google authentication failed.');
+        throw new Error(data.error || data.detail || 'Google authentication failed.');
       }
 
       setSuccessMsg('Signed in with Google successfully!');
@@ -118,7 +122,7 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
 
         const data = await parseJsonResponse(response);
         if (!response.ok) {
-          throw new Error(data.error || 'Authentication failed. Please check credentials.');
+          throw new Error(data.error || data.detail || 'Authentication failed. Please check credentials.');
         }
 
         onAuthSuccess(data.token, data.user, data.sessionId);
@@ -155,7 +159,7 @@ export default function AuthView({ onAuthSuccess, onBack }: AuthViewProps) {
 
         const signupData = await parseJsonResponse(signupRes);
         if (!signupRes.ok) {
-          throw new Error(signupData.error || 'Registration failed. Try a different email.');
+          throw new Error(signupData.error || signupData.detail || 'Registration failed. Try a different email.');
         }
 
         setSuccessMsg('Registration successful! Logging you in...');

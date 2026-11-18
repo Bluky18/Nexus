@@ -504,17 +504,15 @@ app.post('/api/v1/auth/google-login', (req, res) => {
   }
 
   try {
-    let email = '';
-    let name = 'Google User';
-
     const decoded: any = jwt.decode(idToken);
-    if (decoded && decoded.email) {
-      email = decoded.email;
-      name = decoded.name || email.split('@')[0];
-    } else {
-      email = 'harshitcsb@gmail.com';
-      name = 'Harshit Kataram';
+    if (!decoded || !decoded.email) {
+      return res.status(401).json({
+        error: 'Invalid or unreadable Google ID token.',
+        detail: 'Invalid or unreadable Google ID token.'
+      });
     }
+    const email = String(decoded.email).trim().toLowerCase();
+    const name = decoded.name || email.split('@')[0];
 
     let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (!user) {

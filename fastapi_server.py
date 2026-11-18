@@ -935,6 +935,9 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class GoogleLoginRequest(BaseModel):
+    idToken: str
+
 class ProfileSettingsUpdate(BaseModel):
     theme_preference: Optional[str] = None
     division: Optional[str] = None
@@ -989,12 +992,74 @@ def decode_token(token: str) -> dict:
             
     return {"sub": token}
 
+def decode_google_id_token(id_token: str) -> dict:
+    if not id_token or "." not in id_token:
+        return {}
+    if HAS_JWT:
+        try:
+            return jwt.decode(id_token, options={"verify_signature": False})
+        except Exception:
+            pass
+    import base64
+    import json
+    try:
+        parts = id_token.split(".")
+        if len(parts) >= 2:
+            payload_b64 = parts[1]
+            payload_b64 += "=" * (-len(payload_b64) % 4)
+            decoded_bytes = base64.urlsafe_b64decode(payload_b64.encode())
+            return json.loads(decoded_bytes.decode("utf-8"))
+    except Exception:
+        pass
+    return {}
+
+def find_user_by_email(email: str):
+    if not email:
+        return None
+    clean_email = email.strip()
+    lower_email = clean_email.lower()
+    user = users_collection.find_one({"email": lower_email})
+    if not user and clean_email != lower_email:
+        user = users_collection.find_one({"email": clean_email})
+    if not user and not isinstance(users_collection, MockCollection) if "MockCollection" in globals() else not user:
+        try:
+            import re
+            user = users_collection.find_one({"email": {"$regex": f"^{re.escape(lower_email)}$", "$options": "i"}})
+        except Exception:
+            pass
+    return user
+
+def serialize_user(user: dict, session_id: Optional[str] = None) -> dict:
+    email = user.get("email", "")
+    is_admin = bool(user.get("isAdmin")) or is_user_admin(email)
+    data = {
+        "id": user.get("id"),
+        "name": user.get("name"),
+        "division": user.get("division", ""),
+        "rollNo": user.get("rollNo", ""),
+        "seatNo": user.get("seatNo", "CS26192"),
+        "branch": user.get("branch", "Computer Science"),
+        "email": email,
+        "theme_preference": user.get("theme_preference", "light"),
+        "semester": user.get("semester", 6),
+        "college": user.get("college", "Nirmala Memorial Foundation College, Kandivali, Mumbai"),
+        "rating": user.get("rating", 5.0),
+        "earnings": user.get("earnings", 0),
+        "completedTasksCount": user.get("completedTasksCount", 0),
+        "uploadedNotesCount": user.get("uploadedNotesCount", 0),
+        "isAdmin": is_admin,
+    }
+    if session_id is not None:
+        data["sessionId"] = session_id
+    return data
+
 @app.post("/api/v1/auth/signup", status_code=status.HTTP_201_CREATED)
 def auth_signup(request: SignUpRequest):
     """
     Registers a new student user in MongoDB with Name, Branch, Email, Hashed Password, and generated Board Seat Number.
     """
-    existing = users_collection.find_one({"email": request.email})
+    clean_email = request.email.strip().lower()
+    existing = find_user_by_email(clean_email)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1014,7 +1079,7 @@ def auth_signup(request: SignUpRequest):
         "rollNo": request.rollNo or "",
         "seatNo": seat_no,
         "branch": request.branch,
-        "email": request.email,
+        "email": clean_email,
         "password_hash": hash_password(request.password),
         "theme_preference": "light",
         "semester": 6,
@@ -1023,7 +1088,7 @@ def auth_signup(request: SignUpRequest):
         "earnings": 0,
         "completedTasksCount": 0,
         "uploadedNotesCount": 0,
-        "isAdmin": is_user_admin(request.email)
+        "isAdmin": is_user_admin(clean_email)
     }
     
     try:
@@ -1033,24 +1098,7 @@ def auth_signup(request: SignUpRequest):
             "status": "success",
             "message": "User registered successfully",
             "sessionId": session_id,
-            "user": {
-                "id": user_doc["id"],
-                "name": user_doc["name"],
-                "division": user_doc.get("division", ""),
-                "rollNo": user_doc.get("rollNo", ""),
-                "seatNo": user_doc["seatNo"],
-                "branch": user_doc["branch"],
-                "email": user_doc["email"],
-                "theme_preference": user_doc["theme_preference"],
-                "semester": user_doc["semester"],
-                "college": user_doc["college"],
-                "rating": user_doc["rating"],
-                "earnings": user_doc["earnings"],
-                "completedTasksCount": user_doc["completedTasksCount"],
-                "uploadedNotesCount": user_doc["uploadedNotesCount"],
-                "isAdmin": user_doc.get("isAdmin", is_user_admin(user_doc.get("email", ""))),
-                "sessionId": session_id
-            }
+            "user": serialize_user(user_doc, session_id)
         }
     except Exception as e:
         raise HTTPException(
@@ -1063,44 +1111,113 @@ def auth_login(request: LoginRequest):
     """
     Authenticates a student and issues a JWT token with a session ID.
     """
-    user = users_collection.find_one({"email": request.email})
+    user = find_user_by_email(request.email)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
     
-    if user.get("password_hash") != hash_password(request.password):
+    if user.get("password_hash") and user.get("password_hash") != hash_password(request.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
+    if not user.get("password_hash"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="This account uses Google Sign-In. Please continue with Google."
+        )
     
-    token = encode_token({"sub": user.get("id"), "email": user.get("email")})
+    is_admin = bool(user.get("isAdmin")) or is_user_admin(user.get("email", ""))
+    token = encode_token({"sub": user.get("id"), "email": user.get("email"), "isAdmin": is_admin})
     session_id = f"sess_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
     
     return {
         "status": "success",
         "token": token,
         "sessionId": session_id,
-        "user": {
-            "id": user.get("id"),
-            "name": user.get("name"),
-            "division": user.get("division", ""),
-            "rollNo": user.get("rollNo", ""),
-            "seatNo": user.get("seatNo", "CS26192"),
-            "branch": user.get("branch"),
-            "email": user.get("email"),
-            "theme_preference": user.get("theme_preference", "light"),
-            "semester": user.get("semester", 6),
-            "college": user.get("college", "Nirmala Memorial Foundation College, Kandivali, Mumbai"),
-            "rating": user.get("rating", 5.0),
-            "earnings": user.get("earnings", 0),
-            "completedTasksCount": user.get("completedTasksCount", 0),
-            "uploadedNotesCount": user.get("uploadedNotesCount", 0),
-            "isAdmin": user.get("isAdmin", is_user_admin(user.get("email", ""))),
-            "sessionId": session_id
+        "user": serialize_user(user, session_id)
+    }
+
+@app.post("/api/v1/auth/google-login")
+def auth_google_login(request: GoogleLoginRequest):
+    """
+    Authenticates or registers a student using a Google ID token and issues a session JWT.
+    """
+    if not request.idToken or not request.idToken.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google ID token is required."
+        )
+
+    decoded = decode_google_id_token(request.idToken.strip())
+    email = (decoded.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or unreadable Google ID token."
+        )
+
+    import time
+    exp = decoded.get("exp")
+    if isinstance(exp, (int, float)) and exp < time.time() - 60:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google sign-in session expired. Please try again."
+        )
+
+    name = (decoded.get("name") or email.split("@")[0]).strip()
+    user = find_user_by_email(email)
+
+    if not user:
+        import random
+        clean_year = str(datetime.now().year)[-2:]
+        random_num = random.randint(1000, 9999)
+        user_doc = {
+            "id": f"student-g-{int(datetime.now().timestamp())}-{uuid.uuid4().hex[:6]}",
+            "name": name,
+            "division": "",
+            "rollNo": "",
+            "seatNo": f"CS{clean_year}{random_num}",
+            "branch": "Computer Science",
+            "email": email,
+            "password_hash": "",
+            "theme_preference": "light",
+            "semester": 6,
+            "college": "Nirmala Memorial Foundation College, Kandivali, Mumbai",
+            "rating": 5.0,
+            "earnings": 0,
+            "completedTasksCount": 0,
+            "uploadedNotesCount": 0,
+            "isAdmin": is_user_admin(email)
         }
+        try:
+            users_collection.insert_one(user_doc)
+            user = user_doc
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to register Google user: {str(e)}"
+            )
+    else:
+        computed_admin = bool(user.get("isAdmin")) or is_user_admin(user.get("email", ""))
+        if computed_admin and not user.get("isAdmin"):
+            try:
+                users_collection.update_one({"id": user.get("id")}, {"$set": {"isAdmin": True}})
+                user["isAdmin"] = True
+            except Exception:
+                pass
+
+    is_admin = bool(user.get("isAdmin")) or is_user_admin(user.get("email", ""))
+    token = encode_token({"sub": user.get("id"), "email": user.get("email"), "isAdmin": is_admin})
+    session_id = f"sess_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
+
+    return {
+        "status": "success",
+        "token": token,
+        "sessionId": session_id,
+        "user": serialize_user(user, session_id)
     }
 
 @app.get("/api/v1/user/profile")
