@@ -22,6 +22,40 @@ import {
 } from 'lucide-react';
 import { LostFoundItem, StudentProfile } from '../types';
 import { API_URL } from '../config';
+import thinkpadStylusImg from '../assets/images/thinkpad_stylus_1795013881703.jpg';
+import casioCalculatorImg from '../assets/images/casio_calculator_1795013882893.jpg';
+import leatherWalletImg from '../assets/images/leather_wallet_1795013884456.jpg';
+
+const LEGACY_SEED_URLS = [
+  'images.unsplash.com/photo-1585336261026',
+  'images.unsplash.com/photo-1574634534894',
+  'images.unsplash.com/photo-1627123424574'
+];
+
+function getSeedFallbackPhoto(item: LostFoundItem): string | null {
+  const itemId = (item.item_id || item.id || '').toLowerCase();
+  const title = (item.item_name || item.title || '').toLowerCase();
+
+  if (itemId === 'lf-1' || title.includes('stylus') || title.includes('thinkpad')) {
+    return thinkpadStylusImg;
+  }
+  if (itemId === 'lf-2' || title.includes('calculator') || title.includes('casio')) {
+    return casioCalculatorImg;
+  }
+  if (itemId === 'lf-3' || title.includes('wallet') || title.includes('leather')) {
+    return leatherWalletImg;
+  }
+  return null;
+}
+
+function resolveLostFoundImage(item: LostFoundItem): string {
+  const rawUrl = item.image_url?.trim() || '';
+  const isLegacyUnsplash = LEGACY_SEED_URLS.some(fragment => rawUrl.includes(fragment));
+  if (!rawUrl || isLegacyUnsplash) {
+    return getSeedFallbackPhoto(item) || '';
+  }
+  return rawUrl;
+}
 
 interface LostFoundViewProps {
   lostFound: LostFoundItem[];
@@ -129,7 +163,7 @@ export default function LostFoundView({
       setEditContactEmail(editingItem.contactEmail || '');
       setEditContactPhone(editingItem.contactPhone || '');
       setEditDescription(editingItem.description || '');
-      setEditImageUrl(editingItem.image_url || '');
+      setEditImageUrl(resolveLostFoundImage(editingItem));
     }
   }, [editingItem]);
 
@@ -555,16 +589,28 @@ export default function LostFoundView({
                 </div>
 
                 {/* Image display (Strictly Required for posts) */}
-                {item.image_url && (
-                  <div className="w-full h-44 overflow-hidden rounded-lg mt-3 bg-app border border-border-subtle/50 flex items-center justify-center">
-                    <img 
-                      src={item.image_url} 
-                      alt={displayTitle} 
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                )}
+                {(() => {
+                  const displayImageUrl = resolveLostFoundImage(item);
+                  if (!displayImageUrl) return null;
+                  return (
+                    <div className="w-full h-44 overflow-hidden rounded-lg mt-3 bg-app border border-border-subtle/50 flex items-center justify-center">
+                      <img 
+                        src={displayImageUrl} 
+                        alt={displayTitle} 
+                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const fallback = getSeedFallbackPhoto(item);
+                          if (fallback && e.currentTarget.src !== fallback) {
+                            e.currentTarget.src = fallback;
+                          } else {
+                            e.currentTarget.style.display = 'none';
+                          }
+                        }}
+                      />
+                    </div>
+                  );
+                })()}
 
                 {/* Title & description */}
                 <h3 className="text-sm font-bold text-text-primary mt-3 line-clamp-1">{displayTitle}</h3>

@@ -13,12 +13,16 @@ import LandingPage from './components/LandingPage';
 import NotFoundView from './components/NotFoundView';
 import { RouterProvider, useRouter, TabId, Link } from './router';
 import { Note, Commission, Doubt, LostFoundItem, StudentProfile } from './types';
-import { API_URL } from './config';
+import { API_URL, isEmailAdmin } from './config';
+import thinkpadStylusImg from './assets/images/thinkpad_stylus_1795013881703.jpg';
+import casioCalculatorImg from './assets/images/casio_calculator_1795013882893.jpg';
+import leatherWalletImg from './assets/images/leather_wallet_1795013884456.jpg';
 
 // --- INITIAL SEED DATA ---
 const INITIAL_PROFILE: StudentProfile = {
   id: 'student-123',
   name: 'Harshit Kataram',
+  email: 'harshitcsb@gmail.com',
   division: '',
   rollNo: '',
   seatNo: 'CS26192',
@@ -28,7 +32,8 @@ const INITIAL_PROFILE: StudentProfile = {
   rating: 5.0,
   earnings: 0,
   completedTasksCount: 0,
-  uploadedNotesCount: 0
+  uploadedNotesCount: 0,
+  isAdmin: true
 };
 
 const INITIAL_NOTES: Note[] = [
@@ -221,6 +226,7 @@ const INITIAL_LOST_FOUND: LostFoundItem[] = [
     id: 'lf-1',
     title: 'Black Lenovo ThinkPad Stylus pen',
     description: 'Found an active black digital stylus pen left behind on Table 4 in the library. Has a red tip, likely belongs to a Lenovo Yoga or ThinkPad laptop.',
+    image_url: thinkpadStylusImg,
     locationFound: 'Library Reading Room Table 4',
     currentHolding: 'Library Main Desk Counter (Mrs. Deshmukh)',
     contactName: 'Librarian Assistant',
@@ -234,6 +240,7 @@ const INITIAL_LOST_FOUND: LostFoundItem[] = [
     id: 'lf-2',
     title: 'Casio Scientific Calculator fx-991EX Classwiz',
     description: 'Black scientific calculator left behind on the back benches of Seminar Hall Room 302 during the morning workshop. Scratched initials "R.S." on the reverse slide cover.',
+    image_url: casioCalculatorImg,
     locationFound: 'Seminar Hall Room 302',
     currentHolding: 'CS Department HOD Office Cabin',
     contactName: 'Prof. Rajesh Sen',
@@ -247,6 +254,7 @@ const INITIAL_LOST_FOUND: LostFoundItem[] = [
     id: 'lf-3',
     title: 'Brown leather wallet with ID Card',
     description: 'Lost a brown leather wallet while playing football on the ground. Contains college ID card and travel passes. Please return to sports room if found.',
+    image_url: leatherWalletImg,
     locationFound: 'Sports Playground Bleachers',
     currentHolding: 'N/A',
     contactName: 'Harsh Gupta',
@@ -385,7 +393,8 @@ function NexusAppContent({
     const sid = newSessionId || 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
     localStorage.setItem('nexus_token', newToken);
     localStorage.setItem('nexus_session_id', sid);
-    const profileWithSession = { ...newProfile, sessionId: sid };
+    const isAdmin = Boolean(newProfile.isAdmin ?? isEmailAdmin(newProfile.email));
+    const profileWithSession = { ...newProfile, sessionId: sid, isAdmin };
     localStorage.setItem('nexus_profile', JSON.stringify(profileWithSession));
     setToken(newToken);
     setSessionId(sid);
@@ -426,7 +435,8 @@ function NexusAppContent({
           if (!isMounted) return;
           if (response.ok) {
             const data = await response.json();
-            const profileData = { ...data, sessionId: data.sessionId || sessionId };
+            const isAdmin = Boolean(data.isAdmin ?? isEmailAdmin(data.email));
+            const profileData = { ...data, sessionId: data.sessionId || sessionId, isAdmin };
             setProfile(profileData);
             localStorage.setItem('nexus_profile', JSON.stringify(profileData));
             if (data.theme_preference) {
@@ -731,10 +741,12 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        const isAdmin = Boolean(parsed.isAdmin ?? isEmailAdmin(parsed.email));
         return {
           division: '',
           rollNo: '',
-          ...parsed
+          ...parsed,
+          isAdmin
         };
       } catch {
         return INITIAL_PROFILE;

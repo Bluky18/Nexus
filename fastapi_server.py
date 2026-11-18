@@ -46,6 +46,15 @@ MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("DB_NAME", "nexus_platform")
 JWT_SECRET = os.getenv("JWT_SECRET", "NEXUS_JWT_SECRET_KEY_2026")
 
+# Admin / Moderation Email Allowlist
+ADMIN_EMAILS_RAW = os.getenv("ADMIN_EMAILS", "harshitcsb@gmail.com")
+ADMIN_EMAILS = [e.strip().lower() for e in ADMIN_EMAILS_RAW.split(",") if e.strip()]
+
+def is_user_admin(email: Optional[str]) -> bool:
+    if not email:
+        return False
+    return email.strip().lower() in ADMIN_EMAILS
+
 # Seed doubts data
 seed_doubts = [
     {
@@ -94,7 +103,7 @@ seed_lost_found = [
         "item_name": "Casio Scientific Calculator FX-991EX",
         "title": "Casio Scientific Calculator FX-991EX",
         "description": "Left behind in Room 402 after the Math exam. Has a small sticker of a rocket on the back cover.",
-        "image_url": "https://images.unsplash.com/photo-1574634534894-89d7576c8259?auto=format&fit=crop&w=600&q=80",
+        "image_url": "/images/lost-found/casio_calculator.jpg",
         "location_found": "Room 402",
         "locationFound": "Room 402",
         "status": "found",
@@ -112,7 +121,7 @@ seed_lost_found = [
         "item_name": "Black Leather Wallet",
         "title": "Black Leather Wallet",
         "description": "Lost near the Main Canteen. Contains student ID card under the name of Hitesh, and some cash.",
-        "image_url": "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=600&q=80",
+        "image_url": "/images/lost-found/leather_wallet.jpg",
         "location_found": "Main Canteen",
         "locationFound": "Main Canteen",
         "status": "lost",
@@ -170,7 +179,8 @@ try:
             "rating": 4.8,
             "earnings": 650,
             "completedTasksCount": 2,
-            "uploadedNotesCount": 4
+            "uploadedNotesCount": 4,
+            "isAdmin": True
         })
 except Exception as e:
     print(f"Warning: Failed to connect to MongoDB: {e}")
@@ -250,7 +260,8 @@ except Exception as e:
         "rating": 4.8,
         "earnings": 650,
         "completedTasksCount": 2,
-        "uploadedNotesCount": 4
+        "uploadedNotesCount": 4,
+        "isAdmin": True
     }])
 
 # Helper to serialize MongoDB ObjectIds to strings
@@ -1011,7 +1022,8 @@ def auth_signup(request: SignUpRequest):
         "rating": 5.0,
         "earnings": 0,
         "completedTasksCount": 0,
-        "uploadedNotesCount": 0
+        "uploadedNotesCount": 0,
+        "isAdmin": is_user_admin(request.email)
     }
     
     try:
@@ -1036,6 +1048,7 @@ def auth_signup(request: SignUpRequest):
                 "earnings": user_doc["earnings"],
                 "completedTasksCount": user_doc["completedTasksCount"],
                 "uploadedNotesCount": user_doc["uploadedNotesCount"],
+                "isAdmin": user_doc.get("isAdmin", is_user_admin(user_doc.get("email", ""))),
                 "sessionId": session_id
             }
         }
@@ -1085,6 +1098,7 @@ def auth_login(request: LoginRequest):
             "earnings": user.get("earnings", 0),
             "completedTasksCount": user.get("completedTasksCount", 0),
             "uploadedNotesCount": user.get("uploadedNotesCount", 0),
+            "isAdmin": user.get("isAdmin", is_user_admin(user.get("email", ""))),
             "sessionId": session_id
         }
     }
@@ -1125,6 +1139,7 @@ def get_user_profile(
         "earnings": user.get("earnings", 0),
         "completedTasksCount": user.get("completedTasksCount", 0),
         "uploadedNotesCount": user.get("uploadedNotesCount", 0),
+        "isAdmin": user.get("isAdmin", is_user_admin(user.get("email", ""))),
         "sessionId": client_sess_id
     }
 
@@ -1191,7 +1206,8 @@ def update_user_settings(
                 "rating": updated.get("rating", 5.0),
                 "earnings": updated.get("earnings", 0),
                 "completedTasksCount": updated.get("completedTasksCount", 0),
-                "uploadedNotesCount": updated.get("uploadedNotesCount", 0)
+                "uploadedNotesCount": updated.get("uploadedNotesCount", 0),
+                "isAdmin": updated.get("isAdmin", is_user_admin(updated.get("email", "")))
             }
         }
     except Exception as e:
@@ -1199,6 +1215,92 @@ def update_user_settings(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save settings: {str(e)}"
         )
+
+# --- ADMIN & MODERATION ROUTES ---
+
+@app.get("/api/v1/admin/reports")
+def get_admin_reports(
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None)
+):
+    """
+    Returns flagged / reported content for authorized administrators.
+    """
+    current_user_id = get_current_user_id(authorization, x_user_id)
+    decoded = decode_token(current_user_id)
+    sub_id = decoded.get("sub", current_user_id)
+    
+    user = users_collection.find_one({"id": sub_id})
+    if not user or not (user.get("isAdmin") or is_user_admin(user.get("email"))):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Administrator privileges required."
+        )
+    
+    reports = []
+    # Reported notes
+    for n in notes_collection.find({"reported": True}):
+        reports.append({
+            "id": str(n.get("_id")) if "_id" in n else n.get("id"),
+            "title": n.get("title", "Untitled Note"),
+            "contentType": "note",
+            "reportReason": n.get("reportReason", "Reported by student"),
+            "uploadedBy": n.get("uploadedBy", n.get("uploader_name", "Student")),
+            "date": n.get("date", n.get("timestamp", "")),
+            "subject": n.get("subject", "Academics")
+        })
+    # Reported tasks
+    for t in tasks_collection.find({"reported": True}):
+        reports.append({
+            "id": str(t.get("_id")) if "_id" in t else t.get("id") or t.get("task_id"),
+            "title": t.get("title", "Untitled Task"),
+            "contentType": "commission",
+            "reportReason": t.get("reportReason", "Reported by student"),
+            "uploadedBy": t.get("clientName", t.get("author", "Client")),
+            "date": t.get("deadline", ""),
+            "subject": t.get("branch", "Academics")
+        })
+    # Reported doubts
+    for d in doubts_collection.find({"reported": True}):
+        reports.append({
+            "id": str(d.get("_id")) if "_id" in d else d.get("id") or d.get("doubt_id"),
+            "title": d.get("title", d.get("question", "Untitled Doubt")),
+            "contentType": "doubt",
+            "reportReason": d.get("reportReason", "Reported by student"),
+            "uploadedBy": d.get("authorAnonymousName", "Anonymous"),
+            "date": d.get("date", d.get("timestamp", "")),
+            "subject": d.get("category", d.get("subject", "General"))
+        })
+    return reports
+
+@app.post("/api/v1/admin/reports/{report_id}/dismiss")
+def dismiss_admin_report(
+    report_id: str,
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None)
+):
+    """
+    Dismisses a flagged report.
+    """
+    current_user_id = get_current_user_id(authorization, x_user_id)
+    decoded = decode_token(current_user_id)
+    sub_id = decoded.get("sub", current_user_id)
+    
+    user = users_collection.find_one({"id": sub_id})
+    if not user or not (user.get("isAdmin") or is_user_admin(user.get("email"))):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Administrator privileges required."
+        )
+    
+    query = {"$or": [{"id": report_id}, {"task_id": report_id}, {"doubt_id": report_id}]}
+    if ObjectId.is_valid(report_id):
+        query["$or"].append({"_id": ObjectId(report_id)})
+    
+    notes_collection.update_one(query, {"$set": {"reported": False, "reportReason": ""}})
+    tasks_collection.update_one(query, {"$set": {"reported": False, "reportReason": ""}})
+    doubts_collection.update_one(query, {"$set": {"reported": False, "reportReason": ""}})
+    return {"status": "success", "message": "Report dismissed"}
 
 # For running locally
 if __name__ == "__main__":
