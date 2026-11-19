@@ -75,6 +75,8 @@ export default function NotesView({
   const [attachedFile, setAttachedFile] = useState<{ name: string; size: string; type: string } | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [pendingPreview, setPendingPreview] = useState<{ url: string; type: 'image' | 'pdf' | 'text'; textSnippet?: string } | null>(null);
+  const [localPreviews, setLocalPreviews] = useState<Record<string, { url: string; type: 'image' | 'pdf' | 'text'; textSnippet?: string }>>({});
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -89,6 +91,18 @@ export default function NotesView({
   const processMockFile = (file: File) => {
     setIsUploadingFile(true);
     setUploadProgress(0);
+
+    if (file.type.startsWith('image/')) {
+      setPendingPreview({ url: URL.createObjectURL(file), type: 'image' });
+    } else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      setPendingPreview({ url: URL.createObjectURL(file), type: 'pdf' });
+    } else if (file.type.startsWith('text/') || /\.(txt|md|csv|json|py|ts|js)$/i.test(file.name)) {
+      file.slice(0, 600).text().then((textSnippet) => {
+        setPendingPreview({ url: '', type: 'text', textSnippet });
+      }).catch(() => setPendingPreview(null));
+    } else {
+      setPendingPreview(null);
+    }
     
     // Simulate upload progress ticking up to 100%
     const interval = setInterval(() => {
@@ -325,11 +339,15 @@ export default function NotesView({
       });
       if (response.ok) {
         const createdNote = await response.json();
+        if (pendingPreview && createdNote?.id) {
+          setLocalPreviews(prev => ({ ...prev, [createdNote.id]: pendingPreview }));
+        }
         setNotes(prev => [createdNote, ...prev]);
       } else {
         // Fallback locally
+        const fallbackId = `note-${Date.now()}`;
         const fallbackNote: Note = {
-          id: `note-${Date.now()}`,
+          id: fallbackId,
           ...payload,
           uploadedBy: payload.uploader_name,
           uploader_id: profile?.id,
@@ -341,12 +359,16 @@ export default function NotesView({
           date: new Date().toISOString().split('T')[0],
           reported: false
         };
+        if (pendingPreview) {
+          setLocalPreviews(prev => ({ ...prev, [fallbackId]: pendingPreview }));
+        }
         setNotes(prev => [fallbackNote, ...prev]);
       }
     } catch (err) {
       console.warn('API Post failed, using local fallback:', err);
+      const fallbackId = `note-${Date.now()}`;
       const fallbackNote: Note = {
-        id: `note-${Date.now()}`,
+        id: fallbackId,
         ...payload,
         uploadedBy: payload.uploader_name,
         uploader_id: profile?.id,
@@ -358,6 +380,9 @@ export default function NotesView({
         date: new Date().toISOString().split('T')[0],
         reported: false
       };
+      if (pendingPreview) {
+        setLocalPreviews(prev => ({ ...prev, [fallbackId]: pendingPreview }));
+      }
       setNotes(prev => [fallbackNote, ...prev]);
     }
 
@@ -369,6 +394,7 @@ export default function NotesView({
     setNewDescription('');
     setNewFileUrl('');
     setAttachedFile(null);
+    setPendingPreview(null);
     setIsUploadOpen(false);
   };
 
@@ -580,9 +606,47 @@ export default function NotesView({
                     </span>
                   </div>
 
-                  {/* Watermarked stylized background document graphics */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-10 group-hover:opacity-15 group-hover:scale-105 transition-all">
-                    <FileText size={96} className={style.text} />
+                  {/* Live Document Preview Area */}
+                  <div className="absolute inset-0 flex items-center justify-center pt-8 pb-6 px-6 pointer-events-none">
+                    {localPreviews[note.id]?.type === 'image' || (note.file_url && /^(data:image\/|https?:\/\/.+\.(png|jpe?g|webp|gif)(\?.*)?$)/i.test(note.file_url)) ? (
+                      <img
+                        src={localPreviews[note.id]?.url || note.file_url}
+                        alt={note.title}
+                        className="w-full h-full object-cover rounded-md border border-black/10 dark:border-white/10 shadow-xs group-hover:scale-[1.03] transition-transform duration-200"
+                      />
+                    ) : localPreviews[note.id]?.type === 'pdf' ? (
+                      <iframe
+                        title={`${note.title} preview`}
+                        src={`${localPreviews[note.id].url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                        className="w-full h-full rounded-md border border-black/10 dark:border-white/10 shadow-xs bg-white pointer-events-none"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-white dark:bg-zinc-900 rounded-md border border-black/10 dark:border-white/10 shadow-xs p-2.5 flex flex-col justify-between overflow-hidden group-hover:scale-[1.03] transition-transform duration-200">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.iconBg} border ${style.border}`} />
+                            <p className="text-[9px] font-bold text-zinc-800 dark:text-zinc-100 truncate leading-tight">
+                              {note.title}
+                            </p>
+                          </div>
+                          <p className={`text-[7.5px] font-semibold truncate ${style.text}`}>
+                            {note.subject}
+                          </p>
+                          <p className="text-[7px] leading-[1.35] text-zinc-500 dark:text-zinc-400 line-clamp-2">
+                            {localPreviews[note.id]?.textSnippet || note.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                          <div className="flex-1 space-y-0.5">
+                            <div className="h-0.5 w-3/4 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                            <div className="h-0.5 w-1/2 rounded-full bg-zinc-200/70 dark:bg-zinc-700/70" />
+                          </div>
+                          <span className="text-[7px] font-semibold uppercase tracking-wider text-zinc-400">
+                            Pg 1 • {note.fileType}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Quick Preview overlay */}
